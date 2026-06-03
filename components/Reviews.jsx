@@ -187,7 +187,7 @@ export default function Reviews({ data }) {
             <div className="kpi-card">
               <div className="kpi-label">Overall Error Rate</div>
               <div className="kpi-value">{((total.errRate || 0) * 100).toFixed(1)}%</div>
-              <div className={`kpi-change ${(total.errRate || 0) < 0.02 ? 'pos' : (total.errRate === 0.02 ? 'neu' : 'neg')}`}>UE + DD</div>
+              <div className={`kpi-change ${(total.errRate || 0) < 0.02 ? 'pos' : (total.errRate === 0.02 ? 'neu' : 'neg')}`}>UE + DD + GH</div>
             </div>
           </>
         )}
