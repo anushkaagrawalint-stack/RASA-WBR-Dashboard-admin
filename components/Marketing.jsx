@@ -223,6 +223,7 @@ function LoyaltyMarketing({ data, sub, setSub }) {
   const e7  = lm.email7d || [];
   const e30 = lm.email30d || [];
 
+  const cols = lm.smsCols || {};
   const isMoney = m => /Sales|Revenue|Costs|Value/i.test(m || '');
   const findSms = name => sms.find(r => r.metric === name) || {};
   const campaignsSent = findSms('Campaigns Sent');
@@ -268,9 +269,9 @@ function LoyaltyMarketing({ data, sub, setSub }) {
         <Table
           headers={[
             { label: 'Metric' },
-            { label: 'Week of May 11', cls: 'right' },
-            { label: 'Week of May 4',  cls: 'right' },
-            { label: 'Var (%)',        cls: 'right' },
+            { label: cols.curr || 'This Week',  cls: 'right' },
+            { label: cols.prev || 'Prior Week', cls: 'right' },
+            { label: 'Var (%)',                 cls: 'right' },
           ]}
           rows={sms.map(r => ({
             cells: [

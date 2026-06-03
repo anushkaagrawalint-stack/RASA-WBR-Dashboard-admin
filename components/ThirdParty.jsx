@@ -9,6 +9,12 @@ const PROVIDERS = [
   { id: 'dd', label: 'DoorDash' },
 ];
 
+// Swap each header's label for the verbatim text captured from the sheet (when
+// present), keeping the column order, alignment (cls) and cell rendering intact.
+function withSheetHeaders(labels, defs) {
+  return defs.map((d, i) => ({ ...d, label: labels && labels[i] ? labels[i] : d.label }));
+}
+
 function fmtWait(v) {
   if (!v || v === '-') return '-';
   const parts = String(v).split(':');
@@ -132,7 +138,7 @@ function UESection({ ue }) {
       <div className="table-card">
         <div className="table-title">UE Performance by Location</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(ue.headers?.perf, [
             { label: 'Location' },
             { label: 'Sales', cls: 'right' },
             { label: 'Net Payout', cls: 'right' },
@@ -140,7 +146,7 @@ function UESection({ ue }) {
             { label: 'AOV', cls: 'right' },
             { label: 'Rating', cls: 'right' },
             { label: 'Top Complaint' },
-          ]}
+          ])}
           rows={(ue.perf || []).map(r => ({
             _cls: /all stores/i.test(r.loc) ? 'total-row' : '',
             cells: [r.loc, fmt$(r.sales), fmt$(r.payout), fmtN(r.orders), fmt$(r.aov), ratingBadge(r.rating), complaintCell(r.complaint)],
@@ -151,7 +157,7 @@ function UESection({ ue }) {
       <div className="table-card">
         <div className="table-title">UE Operations by Location</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(ue.headers?.ops, [
             { label: 'Location' },
             { label: 'Error Rate', cls: 'right' },
             { label: 'Missing Items', cls: 'right' },
@@ -164,7 +170,7 @@ function UESection({ ue }) {
             { label: 'Avoid Cancel Rate', cls: 'right' },
             { label: 'Menu CVR', cls: 'right' },
             { label: 'Uptime', cls: 'right' },
-          ]}
+          ])}
           rows={(ue.ops || []).map(r => ({
             _cls: /all stores/i.test(r.loc) ? 'total-row' : '',
             cells: [
@@ -185,7 +191,7 @@ function UESection({ ue }) {
       <div className="table-card">
         <div className="table-title">UE Ads &amp; Campaigns</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(ue.headers?.ads, [
             { label: 'Campaign' },
             { label: 'Sales', cls: 'right' },
             { label: 'Spend', cls: 'right' },
@@ -197,7 +203,7 @@ function UESection({ ue }) {
             { label: 'CVR', cls: 'right' },
             { label: 'Cost Per Order', cls: 'right' },
             { label: 'New Customers', cls: 'right' },
-          ]}
+          ])}
           rows={(ue.ads || []).map(r => ({
             _cls: /all campaign/i.test(r.campaign) ? 'total-row' : '',
             cells: [
@@ -218,30 +224,33 @@ function UESection({ ue }) {
   );
 }
 
-function DDAdsTable({ rows }) {
+function DDAdsTable({ rows, headers }) {
   const divL = { borderLeft: '2px solid var(--border)' };
   const divR = { borderRight: '2px solid var(--border)' };
+  const g = headers?.adsGroup || {};
+  const s = headers?.ads || [];
+  const sub = (i, fallback) => s[i] || fallback;
   return (
     <table>
       <thead>
         <tr>
-          <th rowSpan={2}>Location</th>
-          <th colSpan={4} style={{ textAlign: 'center', ...divL, ...divR }}>Promotions</th>
-          <th colSpan={7} style={{ textAlign: 'center', ...divR }}>Sponsored</th>
-          <th rowSpan={2} className="right">Overall Orders</th>
+          <th rowSpan={2}>{g.loc || 'Location'}</th>
+          <th colSpan={4} style={{ textAlign: 'center', ...divL, ...divR }}>{g.promo || 'Promotions'}</th>
+          <th colSpan={7} style={{ textAlign: 'center', ...divR }}>{g.sponsor || 'Sponsored'}</th>
+          <th rowSpan={2} className="right">{g.overall || 'Overall Orders'}</th>
         </tr>
         <tr>
-          <th className="right" style={divL}>Promo Sales</th>
-          <th className="right">Promo Spend</th>
-          <th className="right">Orders from Promo</th>
-          <th className="right" style={divR}>Promo ROAS</th>
-          <th className="right">Impressions</th>
-          <th className="right">Clicks</th>
-          <th className="right">CTR</th>
-          <th className="right">Sponsor Sales</th>
-          <th className="right">Sponsor Spend</th>
-          <th className="right">Orders from Sponsor</th>
-          <th className="right" style={divR}>Sponsor ROAS</th>
+          <th className="right" style={divL}>{sub(0, 'Promo Sales')}</th>
+          <th className="right">{sub(1, 'Promo Spend')}</th>
+          <th className="right">{sub(2, 'Orders from Promo')}</th>
+          <th className="right" style={divR}>{sub(3, 'Promo ROAS')}</th>
+          <th className="right">{sub(4, 'Impressions')}</th>
+          <th className="right">{sub(5, 'Clicks')}</th>
+          <th className="right">{sub(6, 'CTR')}</th>
+          <th className="right">{sub(7, 'Sponsor Sales')}</th>
+          <th className="right">{sub(8, 'Sponsor Spend')}</th>
+          <th className="right">{sub(9, 'Orders from Sponsor')}</th>
+          <th className="right" style={divR}>{sub(10, 'Sponsor ROAS')}</th>
         </tr>
       </thead>
       <tbody>
@@ -282,14 +291,14 @@ function DDSection({ dd }) {
       <div className="table-card">
         <div className="table-title">DD Performance by Location</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(dd.headers?.perf, [
             { label: 'Location' },
             { label: 'Sales', cls: 'right' },
             { label: 'Net Payout', cls: 'right' },
             { label: 'Orders', cls: 'right' },
             { label: 'AOV', cls: 'right' },
             { label: 'Top Complaints' },
-          ]}
+          ])}
           rows={(dd.perf || []).map(r => ({
             _cls: /all stores/i.test(r.loc) ? 'total-row' : '',
             cells: [r.loc, fmt$(r.sales), fmt$(r.payout), fmtN(r.orders), fmt$(r.aov), complaintCell(r.complaint)],
@@ -300,13 +309,13 @@ function DDSection({ dd }) {
       <div className="table-card">
         <div className="table-title">DD Rating Distribution by Location</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(dd.headers?.ratings, [
             { label: 'Location' },
             { label: 'Love %', cls: 'right' },
             { label: 'Like %', cls: 'right' },
             { label: 'Dislike %', cls: 'right' },
             { label: 'Total Reviews', cls: 'right' },
-          ]}
+          ])}
           rows={(dd.ratings || []).map(r => ({
             _cls: /all stores/i.test(r.loc) ? 'total-row' : '',
             cells: [
@@ -323,7 +332,7 @@ function DDSection({ dd }) {
       <div className="table-card">
         <div className="table-title">DD Operations by Location</div>
         <Table
-          headers={[
+          headers={withSheetHeaders(dd.headers?.ops, [
             { label: 'Location' },
             { label: 'Error Rate', cls: 'right' },
             { label: 'Missing Items', cls: 'right' },
@@ -335,7 +344,7 @@ function DDSection({ dd }) {
             { label: 'Avoid Cancels', cls: 'right' },
             { label: 'Avoid Cancel Rate', cls: 'right' },
             { label: 'Uptime', cls: 'right' },
-          ]}
+          ])}
           rows={(dd.ops || []).map(r => ({
             _cls: /all stores/i.test(r.loc) ? 'total-row' : '',
             cells: [
@@ -354,7 +363,7 @@ function DDSection({ dd }) {
 
       <div className="table-card">
         <div className="table-title">DD Promotions &amp; Sponsored Ads</div>
-        <DDAdsTable rows={dd.ads || []} />
+        <DDAdsTable rows={dd.ads || []} headers={dd.headers} />
       </div>
     </>
   );

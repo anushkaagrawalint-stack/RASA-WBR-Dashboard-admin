@@ -27,8 +27,10 @@ const STAR_LOCS = [
   { value: 'Rockville', label: 'Rockville' },
 ];
 
-// Thresholds mirror Google-Sheets CF rules read from the source XLSX
-// (sheet 'Weekly in-store leadership metr', dxfs 4=red / 6=yellow / 7=green).
+// Thresholds mirror the conditional-formatting rules on the rating cells in the
+// source XLSX (sheet 'Weekly in-store leadership metr', ranges D/J/L/R/X/Z):
+//   >=4.7 → dxf7 green, 4.51-4.69 → dxf6 yellow, <=4.5 → dxf4 red.
+// Applied to the Rating column as well as the per-platform rating columns.
 function ratingBadge(v) {
   if (v == null || v === '-' || typeof v !== 'number' || isNaN(v)) {
     return <span className="badge neutral">NA</span>;
@@ -214,7 +216,7 @@ export default function Reviews({ data }) {
               cells: [
                 r.loc,
                 fmtN(r.reviews),
-                (r.rating || 0).toFixed(1),
+                ratingBadge(r.rating),
                 fmtN(r.s5), fmtN(r.s4), fmtN(r.s3), fmtN(r.s2), fmtN(r.s1),
                 ratingBadge(r.yelp),
                 fmtN(r.yelpN),
@@ -244,7 +246,7 @@ export default function Reviews({ data }) {
               cells: [
                 r.loc,
                 fmtN(r.reviews),
-                (r.rating || 0).toFixed(1),
+                ratingBadge(r.rating),
                 fmtN(r.s5), fmtN(r.s4), fmtN(r.s3), fmtN(r.s2), fmtN(r.s1),
                 ratingBadge(r.ue),
                 ratingBadge(r.dd),

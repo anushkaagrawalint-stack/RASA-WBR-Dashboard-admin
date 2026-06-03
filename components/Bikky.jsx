@@ -242,7 +242,7 @@ function AcqSection({ bikky }) {
           rows={rows.map(r => ({
             _cls: /^average$/i.test(r.period) ? 'total-row' : '',
             cells: [
-              r.period,
+              r.year ? `Week of ${r.period} ${r.year}` : r.period,
               fmtN(r.newGuests),
               fmtN(r.perLoc),
               fmtPct(r[retKey]),
@@ -282,17 +282,31 @@ function OnbSection({ bikky }) {
   const rows = onbPeriod === 'monthly' ? (onb.monthly || []) : (onb.weekly || []);
   const lbl = onbPeriod === 'monthly' ? 'Onboarding — Monthly' : 'Onboarding — Weekly';
   const onbPeriodLbl = onbPeriod === 'monthly' ? 'Latest Month' : 'Latest Week';
-  const chartTitle = onbPeriod === 'monthly' ? 'Onboarded & Engaged (Monthly)' : 'Onboarded & Engaged (Weekly)';
+  const periodSuffix = onbPeriod === 'monthly' ? 'Monthly' : 'Weekly';
 
   const latest = rows[0] || {};
 
   const dataRows = rows.filter(r => !/^average$/i.test(r.period));
-  const chartData = {
+  const onboardedChart = {
     labels: dataRows.map(r => r.period),
     datasets: [
-      { type: 'bar',  label: 'Onboarded', data: dataRows.map(r => r.onboarded), backgroundColor: '#9f7cef', borderRadius: 4, yAxisID: 'y' },
-      { type: 'line', label: 'Engaged',   data: dataRows.map(r => r.engaged),   borderColor: '#fbbf24', backgroundColor: 'transparent', pointRadius: 3, borderWidth: 2, yAxisID: 'y1' },
+      { label: 'Onboarded Guests', data: dataRows.map(r => r.onboarded), backgroundColor: '#9f7cef', borderRadius: 4 },
     ],
+  };
+  const engagedChart = {
+    labels: dataRows.map(r => r.period),
+    datasets: [
+      { label: 'Engaged Guests', data: dataRows.map(r => r.engaged), backgroundColor: '#d6c3f8', borderRadius: 4 },
+    ],
+  };
+  const barOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+      y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+    },
   };
 
   return (
@@ -355,22 +369,18 @@ function OnbSection({ bikky }) {
         />
       </div>
 
-      <div className="chart-card">
-        <div className="chart-title">{chartTitle}</div>
-        <div style={{ height: 280 }}>
-          <Bar
-            data={chartData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom' } },
-              scales: {
-                x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
-                y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
-                y1: { position: 'right', ticks: { color: '#fbbf24' }, grid: { drawOnChartArea: false } },
-              },
-            }}
-          />
+      <div className="charts-row">
+        <div className="chart-card">
+          <div className="chart-title">Total Onboarded Guests ({periodSuffix})</div>
+          <div style={{ height: 280 }}>
+            <Bar data={onboardedChart} options={barOpts} />
+          </div>
+        </div>
+        <div className="chart-card">
+          <div className="chart-title">Total Engaged Guests ({periodSuffix})</div>
+          <div style={{ height: 280 }}>
+            <Bar data={engagedChart} options={barOpts} />
+          </div>
         </div>
       </div>
     </>

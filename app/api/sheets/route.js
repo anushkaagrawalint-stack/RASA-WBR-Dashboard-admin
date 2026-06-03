@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { listWeekFolders, deriveWeekLabel } from '@/lib/xlsxParser';
+import { weekInfoForLabel } from '@/lib/fiscalCalendar';
 import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
@@ -13,10 +14,16 @@ export async function GET(request) {
   }
   try {
     const folders = listWeekFolders(DATA_DIR);
-    const sheets = folders.map(name => ({
-      week: name,
-      label: deriveWeekLabel(path.join(DATA_DIR, name)),
-    }));
+    const sheets = folders.map(name => {
+      const label = deriveWeekLabel(path.join(DATA_DIR, name));
+      const info = weekInfoForLabel(label) || weekInfoForLabel(name);
+      return {
+        week: name,
+        label,
+        period: info ? info.period : null,
+        weekInPeriod: info ? info.weekInPeriod : null,
+      };
+    });
     return NextResponse.json({ sheets });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

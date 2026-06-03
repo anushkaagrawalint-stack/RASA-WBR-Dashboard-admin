@@ -50,8 +50,12 @@ export default function DashboardPage() {
     fetchSheets()
       .then(list => {
         setSheets(list);
-        if (list.length > 0) setWeek(list[list.length - 1].week);
-        else setLoading(false);
+        if (list.length > 0) {
+          // Default to the latest available fiscal week (highest period, then week).
+          const rank = s => (s.period == null ? -1 : s.period * 100 + (s.weekInPeriod || 0));
+          const latest = list.reduce((a, b) => (rank(b) >= rank(a) ? b : a));
+          setWeek(latest.week);
+        } else setLoading(false);
       })
       .catch(err => { setError(err.message); setLoading(false); });
   }, [authChecked]);
@@ -100,15 +104,44 @@ export default function DashboardPage() {
     );
   }
 
+  // Period / Week filters derived from the enriched sheet list. `week` (the
+  // selected folder) stays the single source of truth that drives data loading.
+  const current = sheets.find(s => s.week === week);
+  const currentPeriod = current ? current.period : null;
+  const periods = [...new Set(sheets.map(s => s.period))]
+    .sort((a, b) => (a == null ? Infinity : a) - (b == null ? Infinity : b));
+  const weeksInPeriod = sheets
+    .filter(s => s.period === currentPeriod)
+    .sort((a, b) => (a.weekInPeriod || 0) - (b.weekInPeriod || 0));
+  const periodText = p => (p == null ? 'Other' : `P${p}`);
+  const weekText = s => (s.weekInPeriod != null ? `Week ${s.weekInPeriod}` : s.label);
+
+  function handlePeriodChange(val) {
+    const p = val === 'null' ? null : Number(val);
+    const first = sheets
+      .filter(s => s.period === p)
+      .sort((a, b) => (a.weekInPeriod || 0) - (b.weekInPeriod || 0))[0];
+    if (first) setWeek(first.week);
+  }
+
   return (
     <>
       <header className="header">
         <div className="brand">
           <img src="/rasa-logo.png" alt="RASA" className="brand-logo brand-logo-rasa" />
           <div className="brand-title">Weekly Business Review</div>
+          <select
+            className="week-selector"
+            value={currentPeriod == null ? 'null' : String(currentPeriod)}
+            onChange={e => handlePeriodChange(e.target.value)}
+          >
+            {periods.map(p => (
+              <option key={String(p)} value={p == null ? 'null' : String(p)}>{periodText(p)}</option>
+            ))}
+          </select>
           <select className="week-selector" value={week} onChange={e => setWeek(e.target.value)}>
-            {sheets.map(s => (
-              <option key={s.week} value={s.week}>{s.label}</option>
+            {weeksInPeriod.map(s => (
+              <option key={s.week} value={s.week}>{weekText(s)}</option>
             ))}
           </select>
         </div>

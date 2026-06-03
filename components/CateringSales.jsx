@@ -39,17 +39,19 @@ function OrdersTable({ rows }) {
   return (
     <Table
       headers={ORDER_HEADERS}
-      rows={rows.map(r => ({
-        cells: [
-          r.cohort,
-          statusBadge(r.status),
-          r.name || r.customer,
-          r.company,
-          r.email,
-          r.phone,
-          r.value,
-        ],
-      }))}
+      rows={rows.map(r => r.isTotal
+        ? { _cls: 'total-row', cells: ['Total', '', '', '', '', '', r.value] }
+        : {
+            cells: [
+              r.cohort,
+              statusBadge(r.status),
+              r.name || r.customer,
+              r.company,
+              r.email,
+              r.phone,
+              r.value,
+            ],
+          })}
     />
   );
 }
