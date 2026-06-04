@@ -19,7 +19,7 @@ const EMAIL_HEADERS = [
   { label: 'Delivered', cls: 'right' },
   { label: 'Bounced',   cls: 'right' },
   { label: 'Spam',      cls: 'right' },
-  { label: 'Unsub',     cls: 'right' },
+  { label: 'Unsubscribe', cls: 'right' },
   { label: 'Opened',    cls: 'right' },
   { label: 'Clicked',   cls: 'right' },
   { label: 'Ordered',   cls: 'right' },

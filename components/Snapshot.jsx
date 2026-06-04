@@ -94,8 +94,8 @@ export default function Snapshot({ data }) {
             { label: 'Actual', cls: 'right' },
             { label: 'Last Year (LY)', cls: 'right' },
             { label: 'Budget (BUD)', cls: 'right' },
-            { label: 'Var vs LY', cls: 'right' },
-            { label: 'Var vs Bud', cls: 'right' },
+            { label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LY</>, cls: 'right' },
+            { label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> Bud</>, cls: 'right' },
           ]}
           rows={d.map(r => ({
             _cls: /^totals?$/i.test(r.loc) ? 'total-row' : '',
