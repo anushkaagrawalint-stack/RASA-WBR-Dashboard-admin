@@ -19,8 +19,8 @@ const LOC_PERIODS = [
 ];
 
 const ONB_PERIODS = [
-  { id: 'weekly',  label: 'Weekwise' },
-  { id: 'monthly', label: 'Monthwise' },
+  { id: 'weekly',  label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
 ];
 
 const SELECT_STYLE = {
@@ -34,6 +34,14 @@ const SELECT_STYLE = {
   cursor: 'pointer',
   fontFamily: "'Montserrat', sans-serif",
 };
+
+// Growth value as a colored badge: positive → green, negative → red.
+// Returned as an HTML string so the Table renders it (it detects '<').
+function growthCell(v) {
+  if (v == null || isNaN(v)) return fmtVar(v);
+  const cls = Number(v) >= 0 ? 'green' : 'red';
+  return `<span class="badge ${cls}">${fmtVar(v)}</span>`;
+}
 
 function buildLocTotal(rows) {
   const list = rows.filter(r => !/^total$/i.test(r.loc));
@@ -76,7 +84,7 @@ function LocSection({ bikky }) {
     labels: dataRows.map(r => r.loc),
     datasets: [
       { label: 'Guests',     data: dataRows.map(r => r.guests),    backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'New Guests', data: dataRows.map(r => r.newGuests), backgroundColor: '#d6c3f8', borderRadius: 4 },
+      { label: 'New Guests', data: dataRows.map(r => r.newGuests), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
 
@@ -118,12 +126,12 @@ function LocSection({ bikky }) {
           headers={[
             { label: 'Location' },
             { label: 'Orders', cls: 'right' },
-            { label: 'Orders Growth', cls: 'right' },
+            { label: 'Orders Growth (YoY)', cls: 'right' },
             { label: 'AOV', cls: 'right' },
             { label: 'Guests', cls: 'right' },
-            { label: 'Guest Growth', cls: 'right' },
+            { label: 'Guest Growth (YoY)', cls: 'right' },
             { label: 'New Guests', cls: 'right' },
-            { label: 'New Guest Growth', cls: 'right' },
+            { label: 'New Guest Growth (YoY)', cls: 'right' },
           ]}
           rows={tableRows.map(r => ({
             _cls: /^total$/i.test(r.loc) ? 'total-row' : '',
@@ -133,9 +141,9 @@ function LocSection({ bikky }) {
               fmtVar(r.ordersGrowth),
               fmt$2(r.aov),
               fmtN(r.guests),
-              fmtVar(r.guestsGrowth),
+              growthCell(r.guestsGrowth),
               fmtN(r.newGuests),
-              fmtVar(r.newGuestsGrowth),
+              growthCell(r.newGuestsGrowth),
             ],
           }))}
         />
@@ -193,8 +201,8 @@ function AcqSection({ bikky }) {
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={view} onChange={e => setView(e.target.value)} style={SELECT_STYLE}>
-          <option value="monthwise">Monthwise</option>
-          <option value="weekwise">Weekwise</option>
+          <option value="monthwise">Monthly</option>
+          <option value="weekwise">Weekly</option>
         </select>
         {view === 'monthwise' && (
           <select value={retSel} onChange={e => setRetSel(e.target.value)} style={SELECT_STYLE}>
@@ -213,7 +221,7 @@ function AcqSection({ bikky }) {
         <div className="kpi-card">
           <div className="kpi-label">{retLabel} ({periodLbl})</div>
           <div className="kpi-value">{fmtPct(retRate)}</div>
-          <div className={`kpi-change ${retRate >= 0.15 ? 'pos' : retRate >= 0.10 ? 'neu' : 'neg'}`}>Returning guests</div>
+          <div className={`kpi-change ${retRate >= 0.15 ? 'pos' : 'neu'}`}>Returning guests</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Avg Orders ({periodLbl})</div>
@@ -296,7 +304,7 @@ function OnbSection({ bikky }) {
   const engagedChart = {
     labels: dataRows.map(r => r.period),
     datasets: [
-      { label: 'Engaged Guests', data: dataRows.map(r => r.engaged), backgroundColor: '#d6c3f8', borderRadius: 4 },
+      { label: 'Engaged Guests', data: dataRows.map(r => r.engaged), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
   const barOpts = {

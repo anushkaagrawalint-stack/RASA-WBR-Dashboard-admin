@@ -173,7 +173,13 @@ export default function Sales({ data }) {
       <div className="charts-row">
         <div className="chart-card" style={{ gridColumn: 'span 1' }}>
           <div className="chart-title">{chartTitle}</div>
-          <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
+          <Bar data={barData} options={{
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.parsed.y)}` } },
+            },
+          }} />
         </div>
         <div className="chart-card" style={{ gridColumn: 'span 1' }}>
           <div className="chart-title">{pieTitle}</div>

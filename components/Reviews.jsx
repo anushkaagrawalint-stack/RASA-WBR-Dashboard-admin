@@ -106,7 +106,7 @@ export default function Reviews({ data }) {
         labels: dataRows.map(r => r.loc),
         datasets: [
           { label: 'Google Rating', data: dataRows.map(r => typeof r.google === 'number' ? r.google : null), backgroundColor: '#9f7cef', borderRadius: 4 },
-          { label: 'Yelp Rating',   data: dataRows.map(r => typeof r.yelp   === 'number' ? r.yelp   : null), backgroundColor: '#d6c3f8', borderRadius: 4 },
+          { label: 'Yelp Rating',   data: dataRows.map(r => typeof r.yelp   === 'number' ? r.yelp   : null), backgroundColor: '#93c5fd', borderRadius: 4 },
         ],
       };
     }
@@ -115,7 +115,7 @@ export default function Reviews({ data }) {
       datasets: [
         { label: 'Uber Eats', data: dataRows.map(r => typeof r.ue === 'number' ? r.ue : null), backgroundColor: '#9f7cef', borderRadius: 4 },
         { label: 'DoorDash',  data: dataRows.map(r => typeof r.dd === 'number' ? r.dd : null), backgroundColor: '#7c3aed', borderRadius: 4 },
-        { label: 'Grubhub',   data: dataRows.map(r => typeof r.gh === 'number' ? r.gh : null), backgroundColor: '#d6c3f8', borderRadius: 4 },
+        { label: 'Grubhub',   data: dataRows.map(r => typeof r.gh === 'number' ? r.gh : null), backgroundColor: '#93c5fd', borderRadius: 4 },
       ],
     };
   }, [dataRows, source]);

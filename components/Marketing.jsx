@@ -88,6 +88,20 @@ function cvrCell(v) {
   return `<span class="badge ${cls}">${(n * 100).toFixed(1)}%</span>`;
 }
 
+// Show a value exactly as it appears in the source table — no rounding to a
+// whole number (so e.g. ROAS keeps its decimals). Preserves up to 2 decimals
+// (the precision the parser stores) with thousands separators.
+function exactNum(v) {
+  if (v == null || v === '-' || isNaN(v)) return '-';
+  return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+function exactMoney(v) {
+  if (v == null || v === '-' || isNaN(v)) return '-';
+  const n = Number(v);
+  const s = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return n < 0 ? `($${s})` : `$${s}`;
+}
+
 function roasCell(v) {
   const n = Number(v) || 0;
   const cls = n >= 4 ? 'green' : n > 3.5 ? 'amber' : 'red';
@@ -276,8 +290,8 @@ function LoyaltyMarketing({ data, sub, setSub }) {
           rows={sms.map(r => ({
             cells: [
               r.metric,
-              isMoney(r.metric) ? fmt$(r.curr) : fmtN(r.curr),
-              isMoney(r.metric) ? fmt$(r.prev) : fmtN(r.prev),
+              isMoney(r.metric) ? exactMoney(r.curr) : exactNum(r.curr),
+              isMoney(r.metric) ? exactMoney(r.prev) : exactNum(r.prev),
               fmtVar(r.var),
             ],
           }))}

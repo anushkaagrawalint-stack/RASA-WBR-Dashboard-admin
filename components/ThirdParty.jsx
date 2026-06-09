@@ -154,7 +154,7 @@ function UESection({ ue }) {
         />
       </div>
 
-      <div className="table-card">
+      <div className="table-card ops-table">
         <div className="table-title">UE Operations by Location</div>
         <Table
           headers={withSheetHeaders(ue.headers?.ops, [
@@ -329,7 +329,7 @@ function DDSection({ dd }) {
         />
       </div>
 
-      <div className="table-card">
+      <div className="table-card ops-table">
         <div className="table-title">DD Operations by Location</div>
         <Table
           headers={withSheetHeaders(dd.headers?.ops, [

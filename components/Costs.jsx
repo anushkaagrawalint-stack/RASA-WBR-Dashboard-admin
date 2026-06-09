@@ -4,7 +4,7 @@ import { useState } from 'react';
 import '@/lib/chartSetup';
 import { Bar } from 'react-chartjs-2';
 import Table from './Table';
-import { fmtPct, fmtVarPC } from '@/lib/fmt';
+import { fmtPct, fmtVarPCColored } from '@/lib/fmt';
 
 const VIEWS = [
   { id: 'weekly', label: 'Weekly' },
@@ -43,21 +43,21 @@ export default function Costs({ data }) {
     labels: locs,
     datasets: [
       { label: 'Actual Labor %', data: rows.map(r => +((r.laborAct || 0) * 100).toFixed(1)), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'Budget Labor %', data: rows.map(r => +((r.laborBud || 0) * 100).toFixed(1)), backgroundColor: '#ccb5f6', borderRadius: 4 },
+      { label: 'Budget Labor %', data: rows.map(r => +((r.laborBud || 0) * 100).toFixed(1)), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
   const cogsChart = {
     labels: locs,
     datasets: [
       { label: 'Actual COGS %', data: rows.map(r => +((r.cogsAct || 0) * 100).toFixed(1)), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'Budget COGS %', data: rows.map(r => +((r.cogsBud || 0) * 100).toFixed(1)), backgroundColor: '#ccb5f6', borderRadius: 4 },
+      { label: 'Budget COGS %', data: rows.map(r => +((r.cogsBud || 0) * 100).toFixed(1)), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
   const pcChart = {
     labels: locs,
     datasets: [
       { label: 'Actual PC %', data: rows.map(r => +((r.pcAct || 0) * 100).toFixed(1)), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'Budget PC %', data: rows.map(r => +((r.pcBud || 0) * 100).toFixed(1)), backgroundColor: '#ccb5f6', borderRadius: 4 },
+      { label: 'Budget PC %', data: rows.map(r => +((r.pcBud || 0) * 100).toFixed(1)), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
 
@@ -74,19 +74,19 @@ export default function Costs({ data }) {
 
       <div className="kpi-row">
         <div className="kpi-card">
-          <div className="kpi-label">Avg Labor %</div>
+          <div className="kpi-label">Actual Labor %</div>
           <div className="kpi-value">{fmtPct(total.laborAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.laborBud)} · Var: {fmtVarPC(varLabor)}</div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.laborBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varLabor) }} /></div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">Avg COGS %</div>
+          <div className="kpi-label">Actual COGS %</div>
           <div className="kpi-value">{fmtPct(total.cogsAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.cogsBud)} · Var: {fmtVarPC(varCogs)}</div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.cogsBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varCogs) }} /></div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Prime Cost %</div>
           <div className="kpi-value">{fmtPct(total.pcAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.pcBud)} · Var: {fmtVarPC(varPC)}</div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.pcBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varPC) }} /></div>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function Costs({ data }) {
           ]}
           rows={d.map(r => ({
             _cls: /^totals?$/i.test(r.loc) ? 'total-row' : '',
-            cells: [r.loc, fmtPct(r.laborAct), fmtPct(r.laborBud), fmtPct(r.cogsAct), fmtPct(r.cogsBud), fmtPct(r.pcAct), fmtPct(r.pcBud), fmtVarPC(r.varPC || 0)],
+            cells: [r.loc, fmtPct(r.laborAct), fmtPct(r.laborBud), fmtPct(r.cogsAct), fmtPct(r.cogsBud), fmtPct(r.pcAct), fmtPct(r.pcBud), fmtVarPCColored(r.varPC || 0)],
           }))}
         />
       </div>

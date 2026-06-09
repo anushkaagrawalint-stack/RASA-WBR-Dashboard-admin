@@ -96,7 +96,7 @@ function Lifecycle({ L, period, setPeriod }) {
     labels: wow.map(r => r.metric),
     datasets: [
       { label: wowH.curr, data: wow.map(r => r.curr), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: wowH.prev, data: wow.map(r => r.prev), backgroundColor: '#d6c3f8', borderRadius: 4 },
+      { label: wowH.prev, data: wow.map(r => r.prev), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
   const momData = mom.filter(r => r.metric !== 'Total Members in Loyalty');
@@ -104,7 +104,7 @@ function Lifecycle({ L, period, setPeriod }) {
     labels: momData.map(r => r.metric),
     datasets: [
       { label: momH.mar, data: momData.map(r => r.mar), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: momH.apr, data: momData.map(r => r.apr), backgroundColor: '#d6c3f8', borderRadius: 4 },
+      { label: momH.apr, data: momData.map(r => r.apr), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
 

@@ -24,7 +24,7 @@ export default function Snapshot({ data }) {
     datasets: [
       { label: 'Actual', data: rows.map(r => r.actual), backgroundColor: '#9f7cef',                borderRadius: 4 },
       { label: 'LY',     data: rows.map(r => r.ly),     backgroundColor: 'rgba(209,213,219,0.7)',  borderRadius: 4 },
-      { label: 'Budget', data: rows.map(r => r.budget), backgroundColor: '#ccb5f6',                borderRadius: 4 },
+      { label: 'Budget', data: rows.map(r => r.budget), backgroundColor: '#93c5fd',                borderRadius: 4 },
     ],
   };
   const varChart = {
@@ -74,7 +74,13 @@ export default function Snapshot({ data }) {
       <div className="charts-row">
         <div className="chart-card">
           <div className="chart-title">Sales by Location</div>
-          <Bar data={salesChart} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
+          <Bar data={salesChart} options={{
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.parsed.y)}` } },
+            },
+          }} />
         </div>
         <div className="chart-card">
           <div className="chart-title">Variance % vs LY</div>

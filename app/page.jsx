@@ -15,11 +15,11 @@ import CateringSales from '@/components/CateringSales';
 
 const TABS = [
   { id: 'snapshot',     label: 'Overview' },
-  { id: 'sales',        label: 'Sales & Revenue' },
+  { id: 'sales',        label: 'Revenue & Channels' },
   { id: 'costs',        label: 'Costs' },
   { id: 'reviews',      label: 'Reviews & Ratings' },
   { id: 'thirdparty',   label: '3rd Party Delivery' },
-  { id: 'bikky',        label: 'Customer Insights' },
+  { id: 'bikky',        label: 'Traffic Insights' },
   { id: 'loyalty',      label: 'Loyalty' },
   { id: 'marketing',    label: 'Marketing' },
   { id: 'cateringsales',label: 'Catering' },

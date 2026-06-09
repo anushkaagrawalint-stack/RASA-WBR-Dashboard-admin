@@ -301,6 +301,13 @@ thead th {
 thead th.right {
   text-align: right;
 }
+/* 3PD operations tables have many narrow columns; let their headers wrap to
+   ~2 lines instead of forcing one very wide nowrap row. */
+.ops-table thead th {
+  white-space: normal;
+  line-height: 1.2;
+  vertical-align: bottom;
+}
 tbody td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
