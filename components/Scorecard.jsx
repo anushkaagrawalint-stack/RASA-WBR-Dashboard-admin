@@ -3,28 +3,15 @@
 import { useState, useEffect } from 'react';
 import { fetchScorecardIndex, fetchScorecard } from '@/lib/api';
 
-const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-
-// The fixed 5-band color scale (best → worst) used across the whole scorecard,
-// so every cell is colored from one consistent palette.
-const PALETTE = ['#33A854', '#B6D7A8', '#FFE599', '#EA9999', '#FF5C5F'];
-const PALETTE_BY_CLASS = { green: '#33A854', amber: '#FFE599', red: '#FF5C5F' };
-
-// Snap an arbitrary fill to the nearest color in the palette.
-function nearestHex(hex) {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
-  const [r, g, b] = hexRGB(hex);
-  let best = PALETTE[0], bd = Infinity;
-  for (const p of PALETTE) {
-    const [pr, pg, pb] = hexRGB(p);
-    const d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
-    if (d < bd) { bd = d; best = p; }
-  }
-  return best;
-}
-
-// Pill style: the palette color as the background with dark text (like the swatches).
+// Pill style: the sheet's own cell color as the background, with dark text.
 const pill = hex => ({ background: hex, color: '#1a1f2e' });
+
+const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const toHex = n => Math.round(n).toString(16).padStart(2, '0');
+function lerpHex(h1, h2, t) {
+  const a = hexRGB(h1), b = hexRGB(h2);
+  return '#' + [0, 1, 2].map(i => toHex(a[i] + (b[i] - a[i]) * t)).join('');
+}
 
 const GRANS = [
   { id: 'weekly',  label: 'Weekly' },
@@ -41,32 +28,33 @@ function fmtCell(c) {
   return String(c.v);
 }
 
-// Composite Score and Contributor Band are colored by Excel conditional
-// formatting (not a static fill SheetJS can read) — derive the tone.
-function deriveClass(header, v) {
-  if (header === 'Composite Score' && typeof v === 'number') {
-    return v >= 3 ? 'green' : v >= 2 ? 'amber' : 'red';
+// The Composite Score is colored by a conditional-formatting rule in the sheet
+// (which the xlsx parser can't surface as a cell fill), so we apply that exact
+// rule here — read straight from the workbook's CF/dxfs. Period & Quarter use
+// discrete thresholds; Weekly uses a 0→2.7→5 color-scale gradient.
+const COMPOSITE_BANDS = [[4.7, '#33A854'], [3.7, '#B6D7A8'], [2.7, '#FFE599'], [1.7, '#EA9999']];
+function compositeColor(v, gran) {
+  if (typeof v !== 'number') return null;
+  if (gran === 'weekly') {
+    const c = Math.max(0, Math.min(5, v));
+    return c <= 2.7 ? lerpHex('#F8696B', '#FFF2CC', c / 2.7) : lerpHex('#FFF2CC', '#63BE7B', (c - 2.7) / 2.3);
   }
-  if (header === 'Contributor Band' && typeof v === 'string') {
-    const t = v.toLowerCase();
-    if (/star|high|contributor/.test(t)) return 'green';
-    if (/low/.test(t)) return 'amber';
-    if (/non/.test(t)) return 'red';
-  }
-  return null;
+  for (const [t, hex] of COMPOSITE_BANDS) if (v >= t) return hex;
+  return '#FF5C5F';
 }
 
-// The pill style for a cell, or null when it has no color (plain text cell).
-// Sheet fills snap to the fixed palette; composite/band cells (no fill) map
-// their derived tone to a palette color.
-function cellPill(header, c) {
-  if (c.bg) { const hex = nearestHex(c.bg); return hex ? pill(hex) : null; }
-  const cls = deriveClass(header, c.v);
-  return cls ? pill(PALETTE_BY_CLASS[cls]) : null;
+// Pill color: the sheet's own cell fill, except Composite Score which uses the
+// sheet's conditional-formatting rule. Uncolored cells stay uncolored.
+function cellPill(header, c, gran) {
+  if (header === 'Composite Score') {
+    const hex = compositeColor(c.v, gran);
+    return hex ? pill(hex) : null;
+  }
+  return (c.bg && /^#[0-9a-f]{6}$/i.test(c.bg)) ? pill(c.bg) : null;
 }
 
-// Colors every cell from one fixed 5-band palette for a consistent look.
-function ColorTable({ title, data }) {
+// Colors cells from the sheet's own fills (plus the Composite Score CF rule).
+function ColorTable({ title, data, gran }) {
   if (!data || !data.headers || !data.headers.length) return null;
   return (
     <div className="table-card" style={{ marginBottom: 16 }}>
@@ -79,7 +67,7 @@ function ColorTable({ title, data }) {
           {data.rows.map((row, ri) => (
             <tr key={ri}>
               {row.map((c, ci) => {
-                const style = cellPill(data.headers[ci], c);
+                const style = cellPill(data.headers[ci], c, gran);
                 return (
                   <td key={ci} className={ci === 0 ? '' : 'right'}>
                     {style ? <span className="sc-badge" style={style}>{fmtCell(c)}</span> : fmtCell(c)}
@@ -173,8 +161,8 @@ export default function Scorecard() {
       )}
       {!error && !loading && data && (
         <>
-          <ColorTable title={`Area Leader Dashboard${current ? ' — ' + current.label : ''}`} data={data.dashboard} />
-          <ColorTable title="Scoring Matrix" data={data.matrix} />
+          <ColorTable title={`Area Leader Dashboard${current ? ' — ' + current.label : ''}`} data={data.dashboard} gran={gran} />
+          <ColorTable title="Scoring Matrix" data={data.matrix} gran={gran} />
         </>
       )}
     </>
