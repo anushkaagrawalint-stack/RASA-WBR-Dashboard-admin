@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react';
 import { fetchScorecardIndex, fetchScorecard } from '@/lib/api';
 
-// Pill style: the sheet's own cell color as the background, with dark text.
-const pill = hex => ({ background: hex, color: '#1a1f2e' });
-
 const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+
+// Pill style: the given color as the background, with text color chosen for
+// readability (white on dark/saturated fills like purple/green/red, dark on
+// light pastel fills).
+function pill(hex) {
+  const [r, g, b] = hexRGB(hex);
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return { background: hex, color: lum < 150 ? '#fff' : '#1a1f2e' };
+}
 const toHex = n => Math.round(n).toString(16).padStart(2, '0');
 function lerpHex(h1, h2, t) {
   const a = hexRGB(h1), b = hexRGB(h2);
@@ -43,12 +49,25 @@ function compositeColor(v, gran) {
   return '#FF5C5F';
 }
 
-// Pill color: the sheet's own cell fill, except Composite Score which uses the
-// sheet's conditional-formatting rule. Uncolored cells stay uncolored.
+// Pill color: the sheet's own cell fill, except columns the sheet colors via a
+// conditional-formatting rule (Composite Score; Training % ≥87% green / <87%
+// red) which we apply explicitly. Uncolored cells stay uncolored.
 function cellPill(header, c, gran) {
   if (header === 'Composite Score') {
     const hex = compositeColor(c.v, gran);
     return hex ? pill(hex) : null;
+  }
+  // Contributor Band — color by the Performance Rating Key (same scale as the
+  // composite score), so the band label and score agree.
+  if (header === 'Contributor Band' && typeof c.v === 'string') {
+    const t = c.v.toLowerCase();
+    const hex = /star/.test(t) ? '#33A854' : /high/.test(t) ? '#B6D7A8' : /contributor/.test(t) ? '#FFE599'
+              : /low/.test(t) ? '#EA9999' : /non/.test(t) ? '#FF5C5F' : null;
+    return hex ? pill(hex) : null;
+  }
+  if (/training/i.test(header) && typeof c.v === 'number') {
+    const n = c.v <= 1.5 ? c.v * 100 : c.v; // accept 0.87 or 87
+    return pill(n >= 87 ? '#33A854' : '#FF5C5F');
   }
   return (c.bg && /^#[0-9a-f]{6}$/i.test(c.bg)) ? pill(c.bg) : null;
 }
@@ -67,7 +86,9 @@ function ColorTable({ title, data, gran }) {
           {data.rows.map((row, ri) => (
             <tr key={ri}>
               {row.map((c, ci) => {
-                const style = cellPill(data.headers[ci], c, gran);
+                // The first column is a label (location / category / "All
+                // Stores"), so it's never colored; every other cell keeps its color.
+                const style = ci === 0 ? null : cellPill(data.headers[ci], c, gran);
                 return (
                   <td key={ci} className={ci === 0 ? '' : 'right'}>
                     {style ? <span className="sc-badge" style={style}>{fmtCell(c)}</span> : fmtCell(c)}
