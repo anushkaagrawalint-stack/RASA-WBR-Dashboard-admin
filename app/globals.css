@@ -78,9 +78,9 @@ body {
   letter-spacing: -0.01em;
 }
 .week-selector {
-  background: #e8ddfb;
-  color: #3c1182;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   padding: 6px 18px;
   border-radius: 999px;
   font-size: 12px;
@@ -91,6 +91,10 @@ body {
   -webkit-appearance: none;
   outline: none;
   letter-spacing: 0.02em;
+  transition: background 0.15s;
+}
+.week-selector:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 .week-selector option {
   color: #1a1f2e;
@@ -304,6 +308,17 @@ thead th.right {
 /* 3PD operations tables have many narrow columns; let their headers wrap to
    ~2 lines instead of forcing one very wide nowrap row. */
 .ops-table thead th {
+  white-space: normal;
+  line-height: 1.2;
+  vertical-align: bottom;
+}
+/* Scorecard tables reproduce the sheet's color coding; bordered cells keep
+   adjacent fills from blending together. Headers wrap rather than force width. */
+.scorecard-table th,
+.scorecard-table td {
+  border: 1px solid var(--border);
+}
+.scorecard-table thead th {
   white-space: normal;
   line-height: 1.2;
   vertical-align: bottom;

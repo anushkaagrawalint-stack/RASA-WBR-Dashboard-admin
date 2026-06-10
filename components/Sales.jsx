@@ -9,6 +9,7 @@ import { fmt$, fmtVarColored } from '@/lib/fmt';
 const VIEWS = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'ptd',    label: 'Period to Date' },
+  { id: 'qtd',    label: 'Quarter to Date' },
   { id: 'ytd',    label: 'Year to Date' },
 ];
 
@@ -30,7 +31,8 @@ export default function Sales({ data }) {
   const [sub, setSub]   = useState('all');
   const [loc, setLoc]   = useState('all');
 
-  const vl = view === 'weekly' ? 'Weekly' : view === 'ptd' ? 'PTD' : 'YTD';
+  const views = data.qtdAvailable ? VIEWS : VIEWS.filter(v => v.id !== 'qtd');
+  const vl = view === 'weekly' ? 'Weekly' : view === 'ptd' ? 'PTD' : view === 'qtd' ? 'QTD' : 'YTD';
 
   let rc;
   if (loc !== 'all' && data.revCenterByLoc && data.revCenterByLoc[loc]) {
@@ -79,7 +81,7 @@ export default function Sales({ data }) {
     let subData = null;
     const locSC = loc !== 'all' && data.subCatsByLoc ? data.subCatsByLoc[loc] : null;
     if (locSC) {
-      const viewKey = view === 'ytd' ? 'ytd' : view === 'ptd' ? 'ptd' : 'weekly';
+      const viewKey = view === 'ytd' ? 'ytd' : view === 'ptd' ? 'ptd' : view === 'qtd' ? 'qtd' : 'weekly';
       const locViewData = locSC[viewKey] && locSC[viewKey][sub] && locSC[viewKey][sub].length ? locSC[viewKey][sub] : null;
       if (locViewData) {
         subData = locViewData;
@@ -155,7 +157,7 @@ export default function Sales({ data }) {
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Revenue</span>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="toggle-group">
-            {VIEWS.map(v => (
+            {views.map(v => (
               <button key={v.id} className={`toggle-btn${view === v.id ? ' active' : ''}`} onClick={() => setView(v.id)}>{v.label}</button>
             ))}
           </div>

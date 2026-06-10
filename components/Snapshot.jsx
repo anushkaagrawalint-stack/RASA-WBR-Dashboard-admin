@@ -9,15 +9,18 @@ import { fmt$, fmtVarColored } from '@/lib/fmt';
 const VIEWS = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'ptd',    label: 'Period to Date' },
+  { id: 'qtd',    label: 'Quarter to Date' },
   { id: 'ytd',    label: 'Year to Date' },
 ];
 
 export default function Snapshot({ data }) {
   const [view, setView] = useState('weekly');
+  // QTD only exists in workbooks that ship the QTD sheets (newer weeks).
+  const views = data.qtdAvailable ? VIEWS : VIEWS.filter(v => v.id !== 'qtd');
   const d = (data[view] && data[view].sales) || [];
   const total = d.find(r => /^totals?$/i.test(r.loc)) || d[d.length - 1] || {};
   const rows = d.filter(r => !/^totals?$/i.test(r.loc));
-  const vl = view === 'weekly' ? 'Weekly' : view === 'ptd' ? 'PTD' : 'YTD';
+  const vl = view === 'weekly' ? 'Weekly' : view === 'ptd' ? 'PTD' : view === 'qtd' ? 'QTD' : 'YTD';
 
   const salesChart = {
     labels: rows.map(r => r.loc),
@@ -42,7 +45,7 @@ export default function Snapshot({ data }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Results</span>
         <div className="toggle-group">
-          {VIEWS.map(v => (
+          {views.map(v => (
             <button key={v.id} className={`toggle-btn${view === v.id ? ' active' : ''}`} onClick={() => setView(v.id)}>{v.label}</button>
           ))}
         </div>

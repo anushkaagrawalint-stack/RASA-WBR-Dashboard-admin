@@ -12,6 +12,7 @@ const SOURCES = [
 ];
 const PERIODS = [
   { id: 'weekly', label: '7 Days' },
+  { id: 'day30',  label: '30 Days' },
   { id: 'ninety', label: '90 Days' },
 ];
 
@@ -62,14 +63,59 @@ function computeTotal(rows, source) {
   return { loc: 'Total', reviews, rating, s5 };
 }
 
+// One reviews table (Google+Yelp or 3PD). Reused for the single per-source view
+// and for the 30-day view that stacks both kinds.
+function ReviewTable({ rows, kind, periodLabel }) {
+  const filtered = (rows || []).filter(r => kind !== 'thirdparty' || !EXCLUDED_3PD.includes(String(r.loc).trim()));
+  const found = filtered.find(r => /^total$/i.test(r.loc));
+  const total = found || computeTotal(filtered, kind) || { loc: 'Total', reviews: 0, rating: 0, s5: 0, errRate: 0 };
+  const dataRows = filtered.filter(r => !/^total$/i.test(r.loc));
+  const tableRows = [...dataRows, { ...total, loc: 'Total' }];
+  const title = kind === 'instore'
+    ? `In-Store Reviews — Google + Yelp (${periodLabel})`
+    : `3rd Party Reviews — UE / DD / GH (${periodLabel})`;
+  const headers = [
+    { label: 'Location' },
+    { label: '# Reviews', cls: 'right' },
+    { label: 'Rating', cls: 'right' },
+    { label: '5★', cls: 'right' }, { label: '4★', cls: 'right' }, { label: '3★', cls: 'right' },
+    { label: '2★', cls: 'right' }, { label: '1★', cls: 'right' },
+    ...(kind === 'instore'
+      ? [{ label: 'Yelp', cls: 'right' }, { label: 'Yelp #', cls: 'right' }, { label: 'Google', cls: 'right' }, { label: 'Google #', cls: 'right' }]
+      : [{ label: 'UE', cls: 'right' }, { label: 'DD', cls: 'right' }, { label: 'GH', cls: 'right' }, { label: 'Error Rate', cls: 'right' }]),
+  ];
+  return (
+    <div className="table-card">
+      <div className="table-title">{title}</div>
+      <Table
+        headers={headers}
+        rows={tableRows.map(r => ({
+          _cls: /^total$/i.test(r.loc) ? 'total-row' : '',
+          cells: [
+            r.loc, fmtN(r.reviews), ratingBadge(r.rating),
+            fmtN(r.s5), fmtN(r.s4), fmtN(r.s3), fmtN(r.s2), fmtN(r.s1),
+            ...(kind === 'instore'
+              ? [ratingBadge(r.yelp), fmtN(r.yelpN), ratingBadge(r.google), fmtN(r.gNum)]
+              : [ratingBadge(r.ue), ratingBadge(r.dd), ratingBadge(r.gh), errRateBadge(r.errRate)]),
+          ],
+        }))}
+      />
+    </div>
+  );
+}
+
 export default function Reviews({ data }) {
   const [source, setSource] = useState('instore');
   const [period, setPeriod] = useState('weekly');
   const [starLoc, setStarLoc] = useState('all');
 
+  // The 30-day tables only ship from Jun 2026 onward; hide the filter otherwise.
+  const has30 = !!(data?.reviews?.instore?.day30?.length || data?.reviews?.thirdparty?.day30?.length);
+  const periods = has30 ? PERIODS : PERIODS.filter(p => p.id !== 'day30');
+
   const rowsRaw = ((data?.reviews?.[source]?.[period]) || [])
     .filter(r => source !== 'thirdparty' || !EXCLUDED_3PD.includes(String(r.loc).trim()));
-  const periodLabel = period === 'weekly' ? '7 Days' : '90 Days';
+  const periodLabel = period === 'weekly' ? '7 Days' : period === 'day30' ? '30 Days' : '90 Days';
 
   const total = useMemo(() => {
     const found = rowsRaw.find(r => /^total$/i.test(r.loc));
@@ -77,7 +123,6 @@ export default function Reviews({ data }) {
   }, [rowsRaw, source]);
 
   const dataRows = rowsRaw.filter(r => !/^total$/i.test(r.loc));
-  const tableRows = [...dataRows, total ? { ...total, loc: 'Total' } : null].filter(Boolean);
 
   const starData = useMemo(() => {
     let s5 = 0, s4 = 0, s3 = 0, s2 = 0, s1 = 0, label;
@@ -120,9 +165,6 @@ export default function Reviews({ data }) {
     };
   }, [dataRows, source]);
 
-  const tableTitle = source === 'instore'
-    ? `In-Store Reviews — Google + Yelp (${periodLabel})`
-    : `3rd Party Reviews — UE / DD / GH (${periodLabel})`;
   const chart1Title = source === 'instore'
     ? `Avg Rating by Location (${periodLabel})`
     : `Avg Rating by Location — 3rd Party (${periodLabel})`;
@@ -141,7 +183,7 @@ export default function Reviews({ data }) {
             ))}
           </div>
           <div className="toggle-group">
-            {PERIODS.map(p => (
+            {periods.map(p => (
               <button key={p.id} className={`toggle-btn${period === p.id ? ' active' : ''}`} onClick={() => setPeriod(p.id)}>{p.label}</button>
             ))}
           </div>
@@ -193,70 +235,14 @@ export default function Reviews({ data }) {
         )}
       </div>
 
-      <div className="table-card">
-        <div className="table-title">{tableTitle}</div>
-        {source === 'instore' ? (
-          <Table
-            headers={[
-              { label: 'Location' },
-              { label: '# Reviews', cls: 'right' },
-              { label: 'Rating', cls: 'right' },
-              { label: '5★', cls: 'right' },
-              { label: '4★', cls: 'right' },
-              { label: '3★', cls: 'right' },
-              { label: '2★', cls: 'right' },
-              { label: '1★', cls: 'right' },
-              { label: 'Yelp', cls: 'right' },
-              { label: 'Yelp #', cls: 'right' },
-              { label: 'Google', cls: 'right' },
-              { label: 'Google #', cls: 'right' },
-            ]}
-            rows={tableRows.map(r => ({
-              _cls: /^total$/i.test(r.loc) ? 'total-row' : '',
-              cells: [
-                r.loc,
-                fmtN(r.reviews),
-                ratingBadge(r.rating),
-                fmtN(r.s5), fmtN(r.s4), fmtN(r.s3), fmtN(r.s2), fmtN(r.s1),
-                ratingBadge(r.yelp),
-                fmtN(r.yelpN),
-                ratingBadge(r.google),
-                fmtN(r.gNum),
-              ],
-            }))}
-          />
-        ) : (
-          <Table
-            headers={[
-              { label: 'Location' },
-              { label: '# Reviews', cls: 'right' },
-              { label: 'Rating', cls: 'right' },
-              { label: '5★', cls: 'right' },
-              { label: '4★', cls: 'right' },
-              { label: '3★', cls: 'right' },
-              { label: '2★', cls: 'right' },
-              { label: '1★', cls: 'right' },
-              { label: 'UE', cls: 'right' },
-              { label: 'DD', cls: 'right' },
-              { label: 'GH', cls: 'right' },
-              { label: 'Error Rate', cls: 'right' },
-            ]}
-            rows={tableRows.map(r => ({
-              _cls: /^total$/i.test(r.loc) ? 'total-row' : '',
-              cells: [
-                r.loc,
-                fmtN(r.reviews),
-                ratingBadge(r.rating),
-                fmtN(r.s5), fmtN(r.s4), fmtN(r.s3), fmtN(r.s2), fmtN(r.s1),
-                ratingBadge(r.ue),
-                ratingBadge(r.dd),
-                ratingBadge(r.gh),
-                errRateBadge(r.errRate),
-              ],
-            }))}
-          />
-        )}
-      </div>
+      {period === 'day30' ? (
+        <>
+          <ReviewTable rows={data?.reviews?.instore?.day30} kind="instore" periodLabel="30 Days" />
+          <ReviewTable rows={data?.reviews?.thirdparty?.day30} kind="thirdparty" periodLabel="30 Days" />
+        </>
+      ) : (
+        <ReviewTable rows={rowsRaw} kind={source} periodLabel={periodLabel} />
+      )}
 
       <div className="charts-row">
         <div className="chart-card">

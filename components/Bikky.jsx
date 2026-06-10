@@ -16,6 +16,7 @@ const LOC_PERIODS = [
   { id: 'weekly',  label: '7 Days' },
   { id: 'monthly', label: '30 Days' },
   { id: 'ninety',  label: '90 Days' },
+  { id: 'ytd',     label: 'YTD' },
 ];
 
 const ONB_PERIODS = [
@@ -59,8 +60,11 @@ function LocSection({ bikky }) {
   const locs = bikky.locations || {};
   const rawRows = locPeriod === 'weekly' ? (locs.weekly?.curr || [])
                 : locPeriod === 'monthly' ? (locs.monthly || [])
+                : locPeriod === 'ytd' ? (locs.ytd || [])
                 : (locs.ninety || []);
-  const lbl = locPeriod === 'weekly' ? '7 Days' : locPeriod === 'monthly' ? '30 Days' : '90 Days';
+  const lbl = locPeriod === 'weekly' ? '7 Days' : locPeriod === 'monthly' ? '30 Days' : locPeriod === 'ytd' ? 'YTD' : '90 Days';
+  // YTD locations table only ships from Jun 2026 onward; hide the filter otherwise.
+  const locPeriods = (locs.ytd && locs.ytd.length) ? LOC_PERIODS : LOC_PERIODS.filter(p => p.id !== 'ytd');
 
   const totalFromRows = rawRows.find(r => /^total$/i.test(r.loc));
   let total = totalFromRows;
@@ -92,7 +96,7 @@ function LocSection({ bikky }) {
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <div className="toggle-group">
-          {LOC_PERIODS.map(p => (
+          {locPeriods.map(p => (
             <button key={p.id} className={`toggle-btn${locPeriod === p.id ? ' active' : ''}`} onClick={() => setLocPeriod(p.id)}>{p.label}</button>
           ))}
         </div>

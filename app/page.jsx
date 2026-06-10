@@ -12,6 +12,7 @@ import Bikky from '@/components/Bikky';
 import Loyalty from '@/components/Loyalty';
 import Marketing from '@/components/Marketing';
 import CateringSales from '@/components/CateringSales';
+import Scorecard from '@/components/Scorecard';
 
 const TABS = [
   { id: 'snapshot',     label: 'Overview' },
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'loyalty',      label: 'Loyalty' },
   { id: 'marketing',    label: 'Marketing' },
   { id: 'cateringsales',label: 'Catering' },
+  { id: 'scorecard',    label: 'Leadership Scorecard' },
 ];
 
 export default function DashboardPage() {
@@ -113,7 +115,7 @@ export default function DashboardPage() {
   const weeksInPeriod = sheets
     .filter(s => s.period === currentPeriod)
     .sort((a, b) => (a.weekInPeriod || 0) - (b.weekInPeriod || 0));
-  const periodText = p => (p == null ? 'Other' : `P${p}`);
+  const periodText = p => (p == null ? 'Other' : `Period ${p}`);
   const weekText = s => (s.weekInPeriod != null ? `Week ${s.weekInPeriod}` : s.label);
 
   function handlePeriodChange(val) {
@@ -130,20 +132,24 @@ export default function DashboardPage() {
         <div className="brand">
           <img src="/rasa-logo.png" alt="RASA" className="brand-logo brand-logo-rasa" />
           <div className="brand-title">Weekly Business Review</div>
-          <select
-            className="week-selector"
-            value={currentPeriod == null ? 'null' : String(currentPeriod)}
-            onChange={e => handlePeriodChange(e.target.value)}
-          >
-            {periods.map(p => (
-              <option key={String(p)} value={p == null ? 'null' : String(p)}>{periodText(p)}</option>
-            ))}
-          </select>
-          <select className="week-selector" value={week} onChange={e => setWeek(e.target.value)}>
-            {weeksInPeriod.map(s => (
-              <option key={s.week} value={s.week}>{weekText(s)}</option>
-            ))}
-          </select>
+          {tab !== 'scorecard' && (
+            <>
+              <select
+                className="week-selector"
+                value={currentPeriod == null ? 'null' : String(currentPeriod)}
+                onChange={e => handlePeriodChange(e.target.value)}
+              >
+                {periods.map(p => (
+                  <option key={String(p)} value={p == null ? 'null' : String(p)}>{periodText(p)}</option>
+                ))}
+              </select>
+              <select className="week-selector" value={week} onChange={e => setWeek(e.target.value)}>
+                {weeksInPeriod.map(s => (
+                  <option key={s.week} value={s.week}>{weekText(s)}</option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
         <div className="brand-right">
           <img src="/kutlerri-logo.png" alt="Kutlerri" className="brand-logo brand-logo-kutlerri" />
@@ -164,16 +170,22 @@ export default function DashboardPage() {
       </nav>
 
       <main className="main">
-        {loading && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}><div className="spinner" style={{ margin: '0 auto 10px' }} />Loading week…</div>}
-        {!loading && tab === 'snapshot'      && <Snapshot data={data} />}
-        {!loading && tab === 'sales'         && <Sales data={data} />}
-        {!loading && tab === 'costs'         && <Costs data={data} />}
-        {!loading && tab === 'reviews'       && <Reviews data={data} />}
-        {!loading && tab === 'thirdparty'    && <ThirdParty data={data} />}
-        {!loading && tab === 'bikky'         && <Bikky data={data} />}
-        {!loading && tab === 'loyalty'       && <Loyalty data={data} />}
-        {!loading && tab === 'marketing'     && <Marketing data={data} />}
-        {!loading && tab === 'cateringsales' && <CateringSales data={data} />}
+        {tab === 'scorecard' ? (
+          <Scorecard />
+        ) : (
+          <>
+            {loading && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}><div className="spinner" style={{ margin: '0 auto 10px' }} />Loading week…</div>}
+            {!loading && tab === 'snapshot'      && <Snapshot data={data} />}
+            {!loading && tab === 'sales'         && <Sales data={data} />}
+            {!loading && tab === 'costs'         && <Costs data={data} />}
+            {!loading && tab === 'reviews'       && <Reviews data={data} />}
+            {!loading && tab === 'thirdparty'    && <ThirdParty data={data} />}
+            {!loading && tab === 'bikky'         && <Bikky data={data} />}
+            {!loading && tab === 'loyalty'       && <Loyalty data={data} />}
+            {!loading && tab === 'marketing'     && <Marketing data={data} />}
+            {!loading && tab === 'cateringsales' && <CateringSales data={data} />}
+          </>
+        )}
       </main>
     </>
   );
