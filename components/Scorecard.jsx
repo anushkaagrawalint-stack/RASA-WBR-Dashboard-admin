@@ -117,12 +117,14 @@ export default function Scorecard() {
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
-  // Default the item to the first available for the chosen granularity.
+  // Default to the latest available selection for the chosen granularity.
+  // The index is sorted ascending (oldest → newest), so the last entry is the
+  // most recent week / period / quarter.
   useEffect(() => {
     if (!index) return;
     const list = index[gran] || [];
     if (list.length) {
-      setItem(list[0].id);
+      setItem(list[list.length - 1].id);
     } else {
       setItem('');
       setData(null);
@@ -183,7 +185,6 @@ export default function Scorecard() {
       {!error && !loading && data && (
         <>
           <ColorTable title={`Area Leader Dashboard${current ? ' — ' + current.label : ''}`} data={data.dashboard} gran={gran} />
-          <ColorTable title="Scoring Matrix" data={data.matrix} gran={gran} />
         </>
       )}
     </>

@@ -16,7 +16,7 @@ import Scorecard from '@/components/Scorecard';
 
 const TABS = [
   { id: 'snapshot',     label: 'Overview' },
-  { id: 'sales',        label: 'Revenue & Channels' },
+  { id: 'sales',        label: 'Revenue Channels' },
   { id: 'costs',        label: 'Costs' },
   { id: 'reviews',      label: 'Reviews & Ratings' },
   { id: 'thirdparty',   label: '3rd Party Delivery' },
