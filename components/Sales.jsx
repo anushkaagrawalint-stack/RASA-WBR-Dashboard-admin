@@ -85,7 +85,7 @@ export default function Sales({ data, prevData }) {
     tableHeaders = [
       { label: 'Revenue Centre' },
       { label: 'Actual', cls: 'right' },
-      ...(isWeekly ? [{ label: 'Var vs LW', cls: 'right' }] : []),
+      ...(isWeekly ? [{ label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
       { label: 'LY', cls: 'right' },
       { label: 'Var $', cls: 'right' },
       { label: 'Var %', cls: 'right' },
@@ -149,7 +149,7 @@ export default function Sales({ data, prevData }) {
     tableHeaders = [
       { label: 'Sub-Category' },
       { label: 'Actual', cls: 'right' },
-      ...(isWeekly ? [{ label: 'Var vs LW', cls: 'right' }] : []),
+      ...(isWeekly ? [{ label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
       { label: 'LY', cls: 'right' },
       { label: 'Var $', cls: 'right' },
       { label: 'Var %', cls: 'right' },

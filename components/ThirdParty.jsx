@@ -123,16 +123,80 @@ function dislikeBadge(v) {
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }
 
-function UESection({ ue }) {
-  const tUE = ue.perf?.find(r => /all stores/i.test(r.loc)) || {};
-  const tUEOps = ue.ops?.find(r => /all stores/i.test(r.loc)) || {};
+// Shows both the absolute change ($ or count or pp) and the relative % change.
+// `kind`: '$' | 'n' | 'pct' (percentage stored as fraction, e.g. 0.05 = 5%)
+// `inverse`: true = increase is bad (error rate, etc.)
+function VarChip({ curr, prev, kind = 'n', inverse = false }) {
+  if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) {
+    return <span className="kpi-change neu">— vs LW</span>;
+  }
+  const diff = curr - prev;
+  const isGood = inverse ? diff < 0 : diff > 0;
+  const cls = diff === 0 ? 'neu' : isGood ? 'pos' : 'neg';
+
+  let absTxt;
+  if (kind === '$') {
+    const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
+    absTxt = diff >= 0 ? `$${abs}` : `($${abs})`;
+  } else if (kind === 'pct') {
+    const abs = (Math.abs(diff) * 100).toFixed(1);
+    absTxt = diff >= 0 ? `${abs}pp` : `(${abs}pp)`;
+  } else {
+    const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
+    absTxt = diff >= 0 ? `${abs}` : `(${abs})`;
+  }
+
+  // For percentage metrics (kind='pct') the pp change alone is clear — a
+  // "% of a %" relative figure adds confusion rather than insight.
+  let pctTxt = '';
+  if (kind !== 'pct' && prev !== 0) {
+    const pct = (diff / Math.abs(prev)) * 100;
+    pctTxt = pct >= 0 ? ` · ${pct.toFixed(1)}%` : ` · (${Math.abs(pct).toFixed(1)}%)`;
+  }
+
+  return <span className={`kpi-change ${cls}`}>{absTxt}{pctTxt} vs LW</span>;
+}
+
+function UESection({ ue, prevUE }) {
+  const tUE    = ue.perf?.find(r => /all stores/i.test(r.loc))    || {};
+  const tUEOps = ue.ops?.find(r => /all stores/i.test(r.loc))     || {};
+  const tUEAds = ue.ads?.find(r => /all campaign/i.test(r.campaign)) || {};
+  const pUE    = prevUE?.perf?.find(r => /all stores/i.test(r.loc))    || {};
+  const pUEOps = prevUE?.ops?.find(r => /all stores/i.test(r.loc))     || {};
+  const pUEAds = prevUE?.ads?.find(r => /all campaign/i.test(r.campaign)) || {};
   return (
     <>
       <div className="kpi-row">
-        <div className="kpi-card"><div className="kpi-label">Total Sales</div><div className="kpi-value">{fmt$(tUE.sales)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Number of Orders</div><div className="kpi-value">{fmtN(tUE.orders)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Total Net Payout</div><div className="kpi-value">{fmt$(tUE.payout)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Overall Error Rate</div><div className="kpi-value">{((tUEOps.errRate || 0) * 100).toFixed(1)}%</div></div>
+        <div className="kpi-card">
+          <div className="kpi-label">Total Sales</div>
+          <div className="kpi-value">{fmt$(tUE.sales)}</div>
+          <VarChip curr={tUE.sales} prev={pUE.sales} kind="$" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Number of Orders</div>
+          <div className="kpi-value">{fmtN(tUE.orders)}</div>
+          <VarChip curr={tUE.orders} prev={pUE.orders} kind="n" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Total Net Payout</div>
+          <div className="kpi-value">{fmt$(tUE.payout)}</div>
+          <VarChip curr={tUE.payout} prev={pUE.payout} kind="$" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Overall Error Rate</div>
+          <div className="kpi-value">{((tUEOps.errRate || 0) * 100).toFixed(1)}%</div>
+          <VarChip curr={tUEOps.errRate} prev={pUEOps.errRate} kind="pct" inverse />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">CTR (Ads)</div>
+          <div className="kpi-value">{tUEAds.ctr != null ? ((tUEAds.ctr || 0) * 100).toFixed(1) + '%' : '—'}</div>
+          <VarChip curr={tUEAds.ctr} prev={pUEAds.ctr} kind="pct" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Conversion Rate (Ads)</div>
+          <div className="kpi-value">{tUEAds.cvr != null ? ((tUEAds.cvr || 0) * 100).toFixed(1) + '%' : '—'}</div>
+          <VarChip curr={tUEAds.cvr} prev={pUEAds.cvr} kind="pct" />
+        </div>
       </div>
 
       <div className="table-card">
@@ -276,16 +340,49 @@ function DDAdsTable({ rows, headers }) {
   );
 }
 
-function DDSection({ dd }) {
-  const tDD = dd.perf?.find(r => /all stores/i.test(r.loc)) || {};
-  const tDDOps = dd.ops?.find(r => /all stores/i.test(r.loc)) || {};
+function DDSection({ dd, prevDD }) {
+  const tDD    = dd.perf?.find(r => /all stores/i.test(r.loc))  || {};
+  const tDDOps = dd.ops?.find(r => /all stores/i.test(r.loc))   || {};
+  const tDDAds = dd.ads?.find(r => /all stores/i.test(r.loc))   || {};
+  const pDD    = prevDD?.perf?.find(r => /all stores/i.test(r.loc))  || {};
+  const pDDOps = prevDD?.ops?.find(r => /all stores/i.test(r.loc))   || {};
+  const pDDAds = prevDD?.ads?.find(r => /all stores/i.test(r.loc))   || {};
+  // DD has no explicit CVR — derive it as promo orders / clicks
+  const ddCvr  = tDDAds.clicks > 0 ? tDDAds.promoOrders / tDDAds.clicks : null;
+  const pDdCvr = pDDAds.clicks > 0 ? pDDAds.promoOrders / pDDAds.clicks : null;
   return (
     <>
       <div className="kpi-row">
-        <div className="kpi-card"><div className="kpi-label">Total Sales</div><div className="kpi-value">{fmt$(tDD.sales)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Number of Orders</div><div className="kpi-value">{fmtN(tDD.orders)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Total Net Payout</div><div className="kpi-value">{fmt$(tDD.payout)}</div></div>
-        <div className="kpi-card"><div className="kpi-label">Overall Error Rate</div><div className="kpi-value">{((tDDOps.errRate || 0) * 100).toFixed(1)}%</div></div>
+        <div className="kpi-card">
+          <div className="kpi-label">Total Sales</div>
+          <div className="kpi-value">{fmt$(tDD.sales)}</div>
+          <VarChip curr={tDD.sales} prev={pDD.sales} kind="$" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Number of Orders</div>
+          <div className="kpi-value">{fmtN(tDD.orders)}</div>
+          <VarChip curr={tDD.orders} prev={pDD.orders} kind="n" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Total Net Payout</div>
+          <div className="kpi-value">{fmt$(tDD.payout)}</div>
+          <VarChip curr={tDD.payout} prev={pDD.payout} kind="$" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Overall Error Rate</div>
+          <div className="kpi-value">{((tDDOps.errRate || 0) * 100).toFixed(1)}%</div>
+          <VarChip curr={tDDOps.errRate} prev={pDDOps.errRate} kind="pct" inverse />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">CTR (Sponsored Ads)</div>
+          <div className="kpi-value">{tDDAds.ctr != null ? ((tDDAds.ctr || 0) * 100).toFixed(1) + '%' : '—'}</div>
+          <VarChip curr={tDDAds.ctr} prev={pDDAds.ctr} kind="pct" />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Conversion Rate (Promo)</div>
+          <div className="kpi-value">{ddCvr != null ? (ddCvr * 100).toFixed(1) + '%' : '—'}</div>
+          <VarChip curr={ddCvr} prev={pDdCvr} kind="pct" />
+        </div>
       </div>
 
       <div className="table-card">
@@ -369,10 +466,12 @@ function DDSection({ dd }) {
   );
 }
 
-export default function ThirdParty({ data }) {
+export default function ThirdParty({ data, prevData }) {
   const [prov, setProv] = useState('ue');
-  const ue = data?.ue || {};
-  const dd = data?.dd || {};
+  const ue     = data?.ue     || {};
+  const dd     = data?.dd     || {};
+  const prevUE = prevData?.ue || {};
+  const prevDD = prevData?.dd || {};
 
   return (
     <>
@@ -385,7 +484,7 @@ export default function ThirdParty({ data }) {
         </div>
       </div>
 
-      {prov === 'ue' ? <UESection ue={ue} /> : <DDSection dd={dd} />}
+      {prov === 'ue' ? <UESection ue={ue} prevUE={prevUE} /> : <DDSection dd={dd} prevDD={prevDD} />}
     </>
   );
 }

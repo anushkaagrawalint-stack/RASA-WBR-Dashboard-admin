@@ -13,8 +13,27 @@ const SECTIONS = [
   { id: 'delpick',   label: 'Delivery & Pickup Breakdown' },
 ];
 
-const PURPLE_PAIR = ['#9f7cef', '#d6c3f8'];
-const DP_COLORS = ['#9f7cef', '#d6c3f8', '#e8ddfb'];
+function VarChip({ curr, prev, kind = '$' }) {
+  if (curr == null || prev == null || isNaN(curr) || isNaN(prev) || prev === 0) {
+    return <span className="kpi-change neu">— vs LW</span>;
+  }
+  const diff = curr - prev;
+  const pct  = (diff / Math.abs(prev)) * 100;
+  const cls  = diff >= 0 ? 'pos' : 'neg';
+  const pctTxt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
+  if (kind === '$') {
+    const n = Math.abs(Math.round(diff)).toLocaleString('en-US');
+    const absTxt = diff >= 0 ? `$${n}` : `($${n})`;
+    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+  }
+  // orders / counts
+  const n = Math.abs(Math.round(diff)).toLocaleString('en-US');
+  const absTxt = diff >= 0 ? `${n}` : `(${n})`;
+  return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+}
+
+const PURPLE_PAIR = ['#9f7cef', '#93c5fd'];
+const DP_COLORS = ['#9f7cef', '#93c5fd', '#bfdbfe'];
 
 const grpBarOpts = {
   responsive: true,
@@ -58,14 +77,15 @@ function SectionToggle({ section, setSection }) {
   );
 }
 
-export default function Loyalty({ data }) {
+export default function Loyalty({ data, prevData }) {
   const [section, setSection]   = useState('lifecycle');
   const [lcPeriod, setLcPeriod] = useState('wow');
   const [awPeriod, setAwPeriod] = useState('weekly');
   const [dpPeriod, setDpPeriod] = useState('weekly');
   const [discPer, setDiscPer]   = useState('weekly');
 
-  const L = data.loyalty || {};
+  const L    = data.loyalty     || {};
+  const prevL = prevData?.loyalty || {};
 
   return (
     <>
@@ -78,7 +98,7 @@ export default function Loyalty({ data }) {
       </div>
 
       {section === 'lifecycle' && <Lifecycle L={L} period={lcPeriod} setPeriod={setLcPeriod} />}
-      {section === 'sales'     && <Sales L={L} period={discPer} setPeriod={setDiscPer} />}
+      {section === 'sales'     && <Sales L={L} prevL={prevL} period={discPer} setPeriod={setDiscPer} />}
       {section === 'appweb'    && <AppWeb L={L} period={awPeriod} setPeriod={setAwPeriod} />}
       {section === 'delpick'   && <DelPick L={L} period={dpPeriod} setPeriod={setDpPeriod} />}
     </>
@@ -194,7 +214,7 @@ function Lifecycle({ L, period, setPeriod }) {
 }
 
 // ─── Loyalty Sales ──────────────────────────────────────────────────────────
-function Sales({ L, period, setPeriod }) {
+function Sales({ L, prevL, period, setPeriod }) {
   const rows = L.salesByLoc || [];
   const totals = L.salesTotals
     || (() => {
@@ -208,12 +228,25 @@ function Sales({ L, period, setPeriod }) {
       };
     })();
 
+  const prevRows = prevL?.salesByLoc || [];
+  const prevTotals = prevL?.salesTotals
+    || (() => {
+      const gt = prevRows.find(r => /grand total/i.test(r.loc)) || {};
+      return {
+        totalSales:    gt.totalSales,
+        instoreSales:  gt.inStoreSales,
+        digitalSales:  gt.digitalSales,
+        instoreOrders: gt.inStoreOrders,
+        digitalOrders: gt.digitalOrders,
+      };
+    })();
+
   const salLocs = rows.filter(r => !/grand total/i.test(r.loc));
   const salesByLocChart = {
     labels: salLocs.map(r => r.loc),
     datasets: [
       { label: 'In-Store Sales', data: salLocs.map(r => r.inStoreSales), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'Digital Sales',  data: salLocs.map(r => r.digitalSales), backgroundColor: '#b99af3', borderRadius: 4 },
+      { label: 'Digital Sales',  data: salLocs.map(r => r.digitalSales), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
 
@@ -250,11 +283,12 @@ function Sales({ L, period, setPeriod }) {
         <div className="kpi-card">
           <div className="kpi-label">Total Loyalty Sales</div>
           <div className="kpi-value">{fmt$(totals.totalSales)}</div>
-          <div className="kpi-change neu">This Week</div>
+          <VarChip curr={totals.totalSales} prev={prevTotals.totalSales} kind="$" />
         </div>
         <div className="kpi-card">
           <div className="kpi-label">In-Store Sales</div>
           <div className="kpi-value">{fmt$(totals.instoreSales)}</div>
+          <VarChip curr={totals.instoreSales} prev={prevTotals.instoreSales} kind="$" />
           {totals.instoreOrders != null && (
             <div className="kpi-change neu">{fmtN(totals.instoreOrders)} orders</div>
           )}
@@ -262,6 +296,7 @@ function Sales({ L, period, setPeriod }) {
         <div className="kpi-card">
           <div className="kpi-label">Digital Sales</div>
           <div className="kpi-value">{fmt$(totals.digitalSales)}</div>
+          <VarChip curr={totals.digitalSales} prev={prevTotals.digitalSales} kind="$" />
           {totals.digitalOrders != null && (
             <div className="kpi-change neu">{fmtN(totals.digitalOrders)} orders</div>
           )}
@@ -356,7 +391,7 @@ function AppWeb({ L, period, setPeriod }) {
     labels: awBars.map(r => r.loc),
     datasets: [
       { label: 'App Sales', data: awBars.map(r => r.appSales), backgroundColor: '#9f7cef', borderRadius: 4 },
-      { label: 'Web Sales', data: awBars.map(r => r.webSales), backgroundColor: '#b99af3', borderRadius: 4 },
+      { label: 'Web Sales', data: awBars.map(r => r.webSales), backgroundColor: '#93c5fd', borderRadius: 4 },
     ],
   };
   const lbl = period === 'weekly' ? '7 Days' : '28 Days';

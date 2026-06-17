@@ -187,21 +187,26 @@ export default function CateringSales({ data }) {
   const obSum    = cs.summaryByDir?.outbound || cs.outboundSummary || [];
   const ibSum    = cs.summaryByDir?.inbound  || cs.inboundSummary  || [];
 
-  const trend = cs.trend || [];
-  const tVals = trend.map(t => t.sales != null ? t.sales : t.val);
+  const trend   = cs.trend   || [];
+  const ibTrend = cs.ibTrend || [];
+  const tVals   = trend.map(t => t.sales != null ? t.sales : t.val);
+  const ibVals  = ibTrend.map(t => t.val);
 
-  // Linear regression for trendline
-  const n = tVals.length;
-  let trendData = [];
-  if (n > 1) {
-    const sumX  = tVals.reduce((_, __, i) => _ + i, 0);
-    const sumY  = tVals.reduce((a, v) => a + (v || 0), 0);
-    const sumXY = tVals.reduce((a, v, i) => a + i * (v || 0), 0);
-    const sumX2 = tVals.reduce((a, _, i) => a + i * i, 0);
+  function linReg(vals) {
+    const n = vals.length;
+    if (n < 2) return [];
+    const sumX  = vals.reduce((_, __, i) => _ + i, 0);
+    const sumY  = vals.reduce((a, v) => a + (v || 0), 0);
+    const sumXY = vals.reduce((a, v, i) => a + i * (v || 0), 0);
+    const sumX2 = vals.reduce((a, _, i) => a + i * i, 0);
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-    trendData = tVals.map((_, i) => Math.round(intercept + slope * i));
+    return vals.map((_, i) => Math.round(intercept + slope * i));
   }
+
+  // Linear regression for trendlines
+  const trendData   = linReg(tVals);
+  const ibTrendData = linReg(ibVals);
 
   return (
     <>
@@ -268,7 +273,7 @@ export default function CateringSales({ data }) {
         </>
       )}
 
-      {trend.length > 0 && (
+      {view === 'outbound' && trend.length > 0 && (
         <div className="chart-card">
           <div className="chart-title">WoW — Catering Trend — Outbound</div>
           <Line
@@ -289,6 +294,49 @@ export default function CateringSales({ data }) {
                 {
                   label: 'Trend',
                   data: trendData,
+                  borderColor: '#9ca3af',
+                  backgroundColor: 'transparent',
+                  borderWidth: 1.5,
+                  pointRadius: 0,
+                  tension: 0,
+                  fill: false,
+                  borderDash: [6, 4],
+                },
+              ],
+            }}
+            options={{
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: {
+                x: { ticks: { color: '#6b7280', maxRotation: 45, minRotation: 45, font: { size: 10 } }, grid: { color: '#e5e7eb' } },
+                y: { ticks: { color: '#6b7280', callback: v => '$' + v.toLocaleString() }, grid: { color: '#e5e7eb' } },
+              },
+            }}
+          />
+        </div>
+      )}
+
+      {view === 'inbound' && ibTrend.length > 0 && (
+        <div className="chart-card">
+          <div className="chart-title">WoW — Catering Trend — Inbound</div>
+          <Line
+            data={{
+              labels: ibTrend.map(t => t.week),
+              datasets: [
+                {
+                  label: 'Inbound Order Value',
+                  data: ibVals,
+                  borderColor: '#9f7cef',
+                  backgroundColor: 'rgba(159,124,239,0.06)',
+                  borderWidth: 2,
+                  pointRadius: 3,
+                  pointBackgroundColor: '#9f7cef',
+                  tension: 0.1,
+                  fill: true,
+                },
+                {
+                  label: 'Trend',
+                  data: ibTrendData,
                   borderColor: '#9ca3af',
                   backgroundColor: 'transparent',
                   borderWidth: 1.5,

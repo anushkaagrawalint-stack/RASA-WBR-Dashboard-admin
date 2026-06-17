@@ -190,11 +190,11 @@ export default function DashboardPage() {
             {!loading && tab === 'snapshot'      && <Snapshot data={data} prevData={prevData} />}
             {!loading && tab === 'sales'         && <Sales data={data} prevData={prevData} />}
             {!loading && tab === 'costs'         && <Costs data={data} />}
-            {!loading && tab === 'reviews'       && <Reviews data={data} />}
-            {!loading && tab === 'thirdparty'    && <ThirdParty data={data} />}
+            {!loading && tab === 'reviews'       && <Reviews data={data} prevData={prevData} />}
+            {!loading && tab === 'thirdparty'    && <ThirdParty data={data} prevData={prevData} />}
             {!loading && tab === 'bikky'         && <Bikky data={data} />}
-            {!loading && tab === 'loyalty'       && <Loyalty data={data} />}
-            {!loading && tab === 'marketing'     && <Marketing data={data} />}
+            {!loading && tab === 'loyalty'       && <Loyalty data={data} prevData={prevData} />}
+            {!loading && tab === 'marketing'     && <Marketing data={data} prevData={prevData} />}
             {!loading && tab === 'cateringsales' && <CateringSales data={data} />}
           </>
         )}

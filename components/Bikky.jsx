@@ -44,6 +44,31 @@ function growthCell(v) {
   return `<span class="badge ${cls}">${fmtVar(v)}</span>`;
 }
 
+// Inline variance chip for KPI cards — compares curr vs the previous period row.
+// `label`: "vs LM" or "vs LW". `kind`: 'n' (count) | '$' (dollar) for showBoth mode.
+function PrevKpiChip({ curr, prevRow, prevKey, label, showBoth = false, kind = 'n' }) {
+  if (!prevRow) return <span className="kpi-change neu">— {label}</span>;
+  const prev = prevRow[prevKey];
+  if (prev == null || prev === 0 || isNaN(prev)) return <span className="kpi-change neu">— {label}</span>;
+  const diff = Number(curr) - prev;
+  const v = diff / Math.abs(prev);
+  const cls = v >= 0 ? 'pos' : 'neg';
+  const pctAbs = (Math.abs(v) * 100).toFixed(1) + '%';
+  const pctTxt = v >= 0 ? `${pctAbs}` : `(${pctAbs})`;
+  if (showBoth) {
+    let absTxt;
+    if (kind === '$') {
+      const n = Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      absTxt = diff >= 0 ? `$${n}` : `($${n})`;
+    } else {
+      const n = Math.round(Math.abs(diff)).toLocaleString('en-US');
+      absTxt = diff >= 0 ? `${n}` : `(${n})`;
+    }
+    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} {label}</span>;
+  }
+  return <span className={`kpi-change ${cls}`}>{pctTxt} {label}</span>;
+}
+
 function buildLocTotal(rows) {
   const list = rows.filter(r => !/^total$/i.test(r.loc));
   if (!list.length) return null;
@@ -216,28 +241,34 @@ function AcqSection({ bikky }) {
         )}
       </div>
 
-      <div className="kpi-row">
-        <div className="kpi-card">
-          <div className="kpi-label">New Guests ({periodLbl})</div>
-          <div className="kpi-value">{fmtN(latest.newGuests)}</div>
-          <div className="kpi-change neu">{fmtN(latest.perLoc)} per location</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">{retLabel} ({periodLbl})</div>
-          <div className="kpi-value">{fmtPct(retRate)}</div>
-          <div className={`kpi-change ${retRate >= 0.15 ? 'pos' : 'neu'}`}>Returning guests</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Avg Orders ({periodLbl})</div>
-          <div className="kpi-value">{(Number(latest.avgOrders) || 0).toFixed(1)}</div>
-          <div className="kpi-change neu">per new guest</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">AOV ({periodLbl})</div>
-          <div className="kpi-value">{fmt$2(latest.aov)}</div>
-          <div className="kpi-change neu">per new guest</div>
-        </div>
-      </div>
+      {(() => {
+        const prevRow = rows[1] || null;
+        const vsLabel = isMonthly ? 'vs LM' : 'vs LW';
+        return (
+          <div className="kpi-row">
+            <div className="kpi-card">
+              <div className="kpi-label">New Guests ({periodLbl})</div>
+              <div className="kpi-value">{fmtN(latest.newGuests)}</div>
+              <PrevKpiChip curr={latest.newGuests} prevRow={prevRow} prevKey="newGuests" label={vsLabel} showBoth kind="n" />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">{retLabel} ({periodLbl})</div>
+              <div className="kpi-value">{fmtPct(retRate)}</div>
+              <PrevKpiChip curr={latest[retKey]} prevRow={prevRow} prevKey={retKey} label={vsLabel} />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Avg Orders ({periodLbl})</div>
+              <div className="kpi-value">{(Number(latest.avgOrders) || 0).toFixed(1)}</div>
+              <PrevKpiChip curr={latest.avgOrders} prevRow={prevRow} prevKey="avgOrders" label={vsLabel} />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">AOV ({periodLbl})</div>
+              <div className="kpi-value">{fmt$2(latest.aov)}</div>
+              <PrevKpiChip curr={latest.aov} prevRow={prevRow} prevKey="aov" label={vsLabel} showBoth kind="$" />
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="table-card" style={{ marginBottom: 16 }}>
         <div className="table-title">{tableTitle}</div>
@@ -331,28 +362,34 @@ function OnbSection({ bikky }) {
         </div>
       </div>
 
-      <div className="kpi-row">
-        <div className="kpi-card">
-          <div className="kpi-label">Onboarded Guests ({onbPeriodLbl})</div>
-          <div className="kpi-value">{fmtN(latest.onboarded)}</div>
-          <div className="kpi-change neu">{fmtN(latest.perLoc)} per location</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Avg Onboarding Latency ({onbPeriodLbl})</div>
-          <div className="kpi-value">{fmtN(latest.latency)}</div>
-          <div className="kpi-change neu">days to 4th order</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Avg Onboarding Spend ({onbPeriodLbl})</div>
-          <div className="kpi-value">{fmt$2(latest.spend)}</div>
-          <div className="kpi-change neu">per guest</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Engaged Guests ({onbPeriodLbl})</div>
-          <div className="kpi-value">{fmtN(latest.engaged)}</div>
-          <div className="kpi-change pos">Habitual Guests</div>
-        </div>
-      </div>
+      {(() => {
+        const prevRow = rows[1] || null;
+        const vsLabel = onbPeriod === 'monthly' ? 'vs LM' : 'vs LW';
+        return (
+          <div className="kpi-row">
+            <div className="kpi-card">
+              <div className="kpi-label">Onboarded Guests ({onbPeriodLbl})</div>
+              <div className="kpi-value">{fmtN(latest.onboarded)}</div>
+              <PrevKpiChip curr={latest.onboarded} prevRow={prevRow} prevKey="onboarded" label={vsLabel} />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Avg Onboarding Latency ({onbPeriodLbl})</div>
+              <div className="kpi-value">{fmtN(latest.latency)}</div>
+              <PrevKpiChip curr={latest.latency} prevRow={prevRow} prevKey="latency" label={vsLabel} />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Avg Onboarding Spend ({onbPeriodLbl})</div>
+              <div className="kpi-value">{fmt$2(latest.spend)}</div>
+              <PrevKpiChip curr={latest.spend} prevRow={prevRow} prevKey="spend" label={vsLabel} />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Engaged Guests ({onbPeriodLbl})</div>
+              <div className="kpi-value">{fmtN(latest.engaged)}</div>
+              <PrevKpiChip curr={latest.engaged} prevRow={prevRow} prevKey="engaged" label={vsLabel} />
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="table-card" style={{ marginBottom: 16 }}>
         <div className="table-title">{lbl}</div>

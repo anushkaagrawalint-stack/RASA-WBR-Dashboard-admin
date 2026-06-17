@@ -19,6 +19,56 @@ const PERIODS = [
 // Non-location rows to drop from the 3rd Party reviews tables (both periods).
 const EXCLUDED_3PD = ['Trey', 'Rahul', 'Sahil', 'Didier', 'Olga'];
 
+// Weighted-average platform ratings across all location rows.
+function platformAvgs(locRows, source) {
+  if (source === 'instore') {
+    const gRows = locRows.filter(r => typeof r.google === 'number');
+    const yRows = locRows.filter(r => typeof r.yelp   === 'number');
+    const gTotal = gRows.reduce((a, r) => a + (r.gNum  || 0), 0);
+    const yTotal = yRows.reduce((a, r) => a + (r.yelpN || 0), 0);
+    const google = gTotal > 0
+      ? gRows.reduce((a, r) => a + r.google * (r.gNum  || 0), 0) / gTotal
+      : gRows.length ? gRows.reduce((a, r) => a + r.google, 0) / gRows.length : null;
+    const yelp = yTotal > 0
+      ? yRows.reduce((a, r) => a + r.yelp   * (r.yelpN || 0), 0) / yTotal
+      : yRows.length ? yRows.reduce((a, r) => a + r.yelp,   0) / yRows.length : null;
+    return { google, yelp };
+  }
+  const avg = (rows, key) => {
+    const valid = rows.filter(r => typeof r[key] === 'number');
+    return valid.length ? valid.reduce((a, r) => a + r[key], 0) / valid.length : null;
+  };
+  return { ue: avg(locRows, 'ue'), dd: avg(locRows, 'dd'), gh: avg(locRows, 'gh') };
+}
+
+// Variance chip. `inverse` = increases are bad (error rate).
+// `isRating` = show absolute delta instead of %.
+// `showBoth` = show absolute count change AND percentage (for Reviews / 5★).
+function VarChip({ curr, prev, inverse = false, isRating = false, showBoth = false }) {
+  if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) {
+    return <span className="kpi-change neu">— vs LW</span>;
+  }
+  const diff = curr - prev;
+  if (isRating) {
+    const cls = diff === 0 ? 'neu' : (inverse ? diff < 0 : diff > 0) ? 'pos' : 'neg';
+    const txt = diff >= 0 ? `${diff.toFixed(2)}` : `(${Math.abs(diff).toFixed(2)})`;
+    return <span className={`kpi-change ${cls}`}>{txt} vs LW</span>;
+  }
+  if (prev === 0) {
+    return <span className={`kpi-change ${diff > 0 ? 'pos' : 'neu'}`}>{diff > 0 ? 'New' : '—'} vs LW</span>;
+  }
+  const pct = (diff / Math.abs(prev)) * 100;
+  const cls = diff === 0 ? 'neu' : (inverse ? diff < 0 : diff > 0) ? 'pos' : 'neg';
+  if (showBoth) {
+    const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
+    const absTxt = diff >= 0 ? `${abs}` : `(${abs})`;
+    const pctTxt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
+    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+  }
+  const txt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
+  return <span className={`kpi-change ${cls}`}>{txt} vs LW</span>;
+}
+
 const STAR_LOCS = [
   { value: 'all', label: 'All Locations' },
   { value: 'Ballpark', label: 'Ballpark' },
@@ -104,7 +154,7 @@ function ReviewTable({ rows, kind, periodLabel }) {
   );
 }
 
-export default function Reviews({ data }) {
+export default function Reviews({ data, prevData }) {
   const [source, setSource] = useState('instore');
   const [period, setPeriod] = useState('weekly');
   const [starLoc, setStarLoc] = useState('all');
@@ -123,6 +173,23 @@ export default function Reviews({ data }) {
   }, [rowsRaw, source]);
 
   const dataRows = rowsRaw.filter(r => !/^total$/i.test(r.loc));
+
+  // Previous week — same source + period
+  const prevRowsRaw = useMemo(() =>
+    ((prevData?.reviews?.[source]?.[period]) || [])
+      .filter(r => source !== 'thirdparty' || !EXCLUDED_3PD.includes(String(r.loc).trim())),
+    [prevData, source, period]);
+
+  const prevTotal = useMemo(() => {
+    const found = prevRowsRaw.find(r => /^total$/i.test(r.loc));
+    return found || computeTotal(prevRowsRaw, source) || { reviews: 0, rating: 0, s5: 0, errRate: 0 };
+  }, [prevRowsRaw, source]);
+
+  const prevDataRows = useMemo(() => prevRowsRaw.filter(r => !/^total$/i.test(r.loc)), [prevRowsRaw]);
+
+  // Platform-level averages (Google/Yelp or UE/DD/GH)
+  const currPlat = useMemo(() => platformAvgs(dataRows,     source), [dataRows,     source]);
+  const prevPlat = useMemo(() => platformAvgs(prevDataRows, source), [prevDataRows, source]);
 
   const starData = useMemo(() => {
     let s5 = 0, s4 = 0, s3 = 0, s2 = 0, s1 = 0, label;
@@ -196,17 +263,27 @@ export default function Reviews({ data }) {
             <div className="kpi-card">
               <div className="kpi-label">In-Store Reviews</div>
               <div className="kpi-value">{fmtN(total.reviews)}</div>
-              <div className="kpi-change neu">Google + Yelp</div>
+              <VarChip curr={total.reviews} prev={prevTotal.reviews} showBoth />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
               <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
-              <div className="kpi-change neu">Google + Yelp</div>
+              <VarChip curr={total.rating} prev={prevTotal.rating} isRating />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">5 Star Reviews</div>
               <div className="kpi-value">{fmtN(total.s5)}</div>
-              <div className="kpi-change neu">Google + Yelp</div>
+              <VarChip curr={total.s5} prev={prevTotal.s5} showBoth />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Google Avg Rating</div>
+              <div className="kpi-value">{currPlat.google != null ? currPlat.google.toFixed(1) : '—'}</div>
+              <VarChip curr={currPlat.google} prev={prevPlat.google} isRating />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Yelp Avg Rating</div>
+              <div className="kpi-value">{currPlat.yelp != null ? currPlat.yelp.toFixed(1) : '—'}</div>
+              <VarChip curr={currPlat.yelp} prev={prevPlat.yelp} isRating />
             </div>
           </>
         ) : (
@@ -214,22 +291,37 @@ export default function Reviews({ data }) {
             <div className="kpi-card">
               <div className="kpi-label">3PD Reviews</div>
               <div className="kpi-value">{fmtN(total.reviews)}</div>
-              <div className="kpi-change neu">UE / DD / GH</div>
+              <VarChip curr={total.reviews} prev={prevTotal.reviews} showBoth />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
               <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
-              <div className="kpi-change neu">UE / DD / GH avg</div>
+              <VarChip curr={total.rating} prev={prevTotal.rating} isRating />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">5 Star Reviews</div>
               <div className="kpi-value">{fmtN(total.s5)}</div>
-              <div className="kpi-change neu">UE / DD / GH</div>
+              <VarChip curr={total.s5} prev={prevTotal.s5} showBoth />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Overall Error Rate</div>
               <div className="kpi-value">{((total.errRate || 0) * 100).toFixed(1)}%</div>
-              <div className={`kpi-change ${(total.errRate || 0) < 0.02 ? 'pos' : (total.errRate === 0.02 ? 'neu' : 'neg')}`}>UE + DD + GH</div>
+              <VarChip curr={total.errRate} prev={prevTotal.errRate} inverse />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Uber Eats Rating</div>
+              <div className="kpi-value">{currPlat.ue != null ? currPlat.ue.toFixed(1) : '—'}</div>
+              <VarChip curr={currPlat.ue} prev={prevPlat.ue} isRating />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">DoorDash Rating</div>
+              <div className="kpi-value">{currPlat.dd != null ? currPlat.dd.toFixed(1) : '—'}</div>
+              <VarChip curr={currPlat.dd} prev={prevPlat.dd} isRating />
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Grubhub Rating</div>
+              <div className="kpi-value">{currPlat.gh != null ? currPlat.gh.toFixed(1) : '—'}</div>
+              <VarChip curr={currPlat.gh} prev={prevPlat.gh} isRating />
             </div>
           </>
         )}

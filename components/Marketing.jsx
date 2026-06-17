@@ -108,16 +108,30 @@ function roasCell(v) {
   return `<span class="badge ${cls}">${n.toFixed(1)}×</span>`;
 }
 
+function RoasVarChip({ curr, prev }) {
+  if (curr == null || prev == null || isNaN(curr) || isNaN(prev) || prev === 0) {
+    return <span className="kpi-change neu">— vs LW</span>;
+  }
+  const diff = curr - prev;
+  const pct  = (diff / Math.abs(prev)) * 100;
+  const cls  = diff >= 0 ? 'pos' : 'neg';
+  const absTxt = diff >= 0 ? `${diff.toFixed(1)}×` : `(${Math.abs(diff).toFixed(1)}×)`;
+  const pctTxt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
+  return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+}
+
 // ─── Catering Marketing ─────────────────────────────────────────────────────
-function CateringMarketing({ data, sub, setSub, period, setPeriod }) {
-  const c = data.catering || data.marketing?.catering || {};
+function CateringMarketing({ data, prevData, sub, setSub, period, setPeriod }) {
+  const c     = data.catering     || data.marketing?.catering     || {};
+  const prevC = prevData?.catering || prevData?.marketing?.catering || {};
   const is30 = period === '30d';
   const emails = is30 ? (c.email30d || []) : (c.email90d || []);
   // Parser exposes `flows30d/flows90d`; task spec used `flow30d/flow90d` — accept both.
   const flows  = is30
     ? (c.flow30d || c.flows30d || [])
     : (c.flow90d || c.flows90d || []);
-  const ezAds = c.ezcaterAds || [];
+  const ezAds    = c.ezcaterAds    || [];
+  const ezAds90  = c.ezcaterAds90d || [];
 
   const tEmail = emails.find(r => /^total$/i.test(r.campaign)) || {};
   const tFlow  = flows.find(r => /^total$/i.test(r.flow)) || {};
@@ -127,10 +141,21 @@ function CateringMarketing({ data, sub, setSub, period, setPeriod }) {
   const flowOpenPct  = tFlow.delivered > 0
     ? ((tFlow.opened / tFlow.delivered) * 100).toFixed(1) + '%' : '-';
 
-  const ezRows = ezAds.filter(r => !/^total$/i.test(r.loc || ''));
+  const ezRows   = ezAds.filter(r => !/^total$/i.test(r.loc || ''));
+  const ezRows90 = ezAds90.filter(r => !/^total$/i.test(r.loc || ''));
   // ROAS shown in the KPI card mirrors the EzCater input table's Total row exactly.
-  const ezTotal = ezAds.find(r => r.isTotal || /^total$/i.test(r.loc || ''));
-  const totalRoas = Number(ezTotal?.roas) || 0;
+  const ezTotal    = ezAds.find(r => r.isTotal || /^total$/i.test(r.loc || ''));
+  const ezTotal90  = ezAds90.find(r => r.isTotal || /^total$/i.test(r.loc || ''));
+  const totalRoas   = Number(ezTotal?.roas)   || 0;
+  const totalRoas90 = Number(ezTotal90?.roas) || 0;
+
+  // Previous week ROAS for comparison
+  const prevEzAds    = prevC.ezcaterAds    || [];
+  const prevEzAds90  = prevC.ezcaterAds90d || [];
+  const prevEzTotal    = prevEzAds.find(r => r.isTotal || /^total$/i.test(r.loc || ''));
+  const prevEzTotal90  = prevEzAds90.find(r => r.isTotal || /^total$/i.test(r.loc || ''));
+  const prevRoas   = Number(prevEzTotal?.roas)   || 0;
+  const prevRoas90 = Number(prevEzTotal90?.roas) || 0;
 
   const lbl = is30 ? '30 Days' : '90 Days';
 
@@ -163,7 +188,14 @@ function CateringMarketing({ data, sub, setSub, period, setPeriod }) {
           <div className="kpi-card">
             <div className="kpi-label">EzCater Ad ROAS (30d)</div>
             <div className="kpi-value">{totalRoas.toFixed(1)}×</div>
-            <div className="kpi-change pos">{ezRows.length} Locations</div>
+            <RoasVarChip curr={totalRoas} prev={prevRoas} />
+          </div>
+        )}
+        {!is30 && ezAds90.length > 0 && (
+          <div className="kpi-card">
+            <div className="kpi-label">EzCater Ad ROAS (90d)</div>
+            <div className="kpi-value">{totalRoas90.toFixed(1)}×</div>
+            <RoasVarChip curr={totalRoas90} prev={prevRoas90} />
           </div>
         )}
       </div>
@@ -205,6 +237,46 @@ function CateringMarketing({ data, sub, setSub, period, setPeriod }) {
               { label: 'Customers (Lapsed)',   cls: 'right' },
             ]}
             rows={ezAds.map(r => {
+              const isTotal = r.isTotal || /^total$/i.test(r.loc || '');
+              return {
+                _cls: isTotal ? 'total-row' : '',
+                cells: [
+                  r.loc,
+                  fmtN(r.views),
+                  fmtN(r.clicks),
+                  isTotal ? fmtPct(r.cvr) : cvrCell(r.cvr),
+                  fmtN(r.orders),
+                  fmt$(r.adSpend != null ? r.adSpend : r.spend),
+                  fmt$(r.sales),
+                  isTotal ? (Number(r.roas) || 0).toFixed(1) + '×' : roasCell(r.roas),
+                  fmtN(r.custNew),
+                  fmtN(r.custExisting),
+                  fmtN(r.custLapsed),
+                ],
+              };
+            })}
+          />
+        </div>
+      )}
+
+      {!is30 && ezAds90.length > 0 && (
+        <div className="table-card">
+          <div className="table-title">EzCater Paid Ads — Last 90 Days</div>
+          <Table
+            headers={[
+              { label: 'Restaurant' },
+              { label: 'Views',                cls: 'right' },
+              { label: 'Clicks',               cls: 'right' },
+              { label: 'Conversion Rate',      cls: 'right' },
+              { label: 'Orders',               cls: 'right' },
+              { label: 'Ad Spend',             cls: 'right' },
+              { label: 'Sales from Ads',       cls: 'right' },
+              { label: 'ROAS',                 cls: 'right' },
+              { label: 'Customers (New)',      cls: 'right' },
+              { label: 'Customers (Existing)', cls: 'right' },
+              { label: 'Customers (Lapsed)',   cls: 'right' },
+            ]}
+            rows={ezAds90.map(r => {
               const isTotal = r.isTotal || /^total$/i.test(r.loc || '');
               return {
                 _cls: isTotal ? 'total-row' : '',
@@ -311,12 +383,12 @@ function LoyaltyMarketing({ data, sub, setSub }) {
   );
 }
 
-export default function Marketing({ data }) {
+export default function Marketing({ data, prevData }) {
   const [sub, setSub]       = useState('catering');
   const [period, setPeriod] = useState('30d');
 
   if (sub === 'catering') {
-    return <CateringMarketing data={data} sub={sub} setSub={setSub} period={period} setPeriod={setPeriod} />;
+    return <CateringMarketing data={data} prevData={prevData} sub={sub} setSub={setSub} period={period} setPeriod={setPeriod} />;
   }
   return <LoyaltyMarketing data={data} sub={sub} setSub={setSub} />;
 }
