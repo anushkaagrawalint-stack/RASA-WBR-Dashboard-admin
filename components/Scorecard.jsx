@@ -41,27 +41,13 @@ function compositeColor(v) {
   return '#FF5C5F';
 }
 
-// Pill color: the sheet's own cell fill, except columns the sheet colors via a
-// conditional-formatting rule (Composite Score; Training % ≥87% green / <87%
-// red) which we apply explicitly. Uncolored cells stay uncolored.
+// Only the Composite Score column gets a colored pill; all other columns are plain text.
 function cellPill(header, c) {
   if (header === 'Composite Score') {
     const hex = compositeColor(c.v);
     return hex ? pill(hex) : null;
   }
-  // Contributor Band — color by the Performance Rating Key (same scale as the
-  // composite score), so the band label and score agree.
-  if (header === 'Contributor Band' && typeof c.v === 'string') {
-    const t = c.v.toLowerCase();
-    const hex = /star/.test(t) ? '#33A854' : /high/.test(t) ? '#B6D7A8' : /contributor/.test(t) ? '#FFE599'
-              : /low/.test(t) ? '#EA9999' : /non/.test(t) ? '#FF5C5F' : null;
-    return hex ? pill(hex) : null;
-  }
-  if (/training/i.test(header) && typeof c.v === 'number') {
-    const n = c.v <= 1.5 ? c.v * 100 : c.v; // accept 0.87 or 87
-    return pill(n >= 87 ? '#33A854' : '#FF5C5F');
-  }
-  return (c.bg && /^#[0-9a-f]{6}$/i.test(c.bg)) ? pill(c.bg) : null;
+  return null;
 }
 
 // Colors cells from the sheet's own fills (plus the Composite Score CF rule).

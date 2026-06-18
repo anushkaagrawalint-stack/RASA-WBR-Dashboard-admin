@@ -134,27 +134,33 @@ function VarChip({ curr, prev, kind = 'n', inverse = false }) {
   const isGood = inverse ? diff < 0 : diff > 0;
   const cls = diff === 0 ? 'neu' : isGood ? 'pos' : 'neg';
 
-  let absTxt;
+  let absTxt, absLabel;
   if (kind === '$') {
     const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
     absTxt = diff >= 0 ? `$${abs}` : `($${abs})`;
+    absLabel = 'Var $:';
   } else if (kind === 'pct') {
     const abs = (Math.abs(diff) * 100).toFixed(1);
-    absTxt = diff >= 0 ? `${abs}pp` : `(${abs}pp)`;
+    absTxt = diff >= 0 ? `${abs}%` : `(${abs}%)`;
+    absLabel = 'Var%:';
+  } else if (kind === 'roas') {
+    const abs = Math.abs(diff).toFixed(1);
+    absTxt = diff >= 0 ? `${abs}×` : `(${abs}×)`;
+    absLabel = 'Var:';
   } else {
     const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
     absTxt = diff >= 0 ? `${abs}` : `(${abs})`;
+    absLabel = 'Var:';
   }
 
-  // For percentage metrics (kind='pct') the pp change alone is clear — a
-  // "% of a %" relative figure adds confusion rather than insight.
-  let pctTxt = '';
+  let pctEl = null;
   if (kind !== 'pct' && prev !== 0) {
     const pct = (diff / Math.abs(prev)) * 100;
-    pctTxt = pct >= 0 ? ` · ${pct.toFixed(1)}%` : ` · (${Math.abs(pct).toFixed(1)}%)`;
+    const p = pct >= 0 ? `Var%: ${pct.toFixed(1)}%` : `Var%: (${Math.abs(pct).toFixed(1)}%)`;
+    pctEl = <><br/>{p}</>;
   }
 
-  return <span className={`kpi-change ${cls}`}>{absTxt}{pctTxt} vs LW</span>;
+  return <span className={`kpi-change ${cls}`}>{absLabel} {absTxt}{pctEl} vs LW</span>;
 }
 
 function UESection({ ue, prevUE }) {
@@ -188,14 +194,9 @@ function UESection({ ue, prevUE }) {
           <VarChip curr={tUEOps.errRate} prev={pUEOps.errRate} kind="pct" inverse />
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">CTR (Ads)</div>
-          <div className="kpi-value">{tUEAds.ctr != null ? ((tUEAds.ctr || 0) * 100).toFixed(1) + '%' : '—'}</div>
-          <VarChip curr={tUEAds.ctr} prev={pUEAds.ctr} kind="pct" />
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Conversion Rate (Ads)</div>
-          <div className="kpi-value">{tUEAds.cvr != null ? ((tUEAds.cvr || 0) * 100).toFixed(1) + '%' : '—'}</div>
-          <VarChip curr={tUEAds.cvr} prev={pUEAds.cvr} kind="pct" />
+          <div className="kpi-label">ROAS (Ads)</div>
+          <div className="kpi-value">{tUEAds.roas != null ? (Number(tUEAds.roas) || 0).toFixed(1) + '×' : '—'}</div>
+          <VarChip curr={tUEAds.roas} prev={pUEAds.roas} kind="roas" />
         </div>
       </div>
 
@@ -374,14 +375,14 @@ function DDSection({ dd, prevDD }) {
           <VarChip curr={tDDOps.errRate} prev={pDDOps.errRate} kind="pct" inverse />
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">CTR (Sponsored Ads)</div>
-          <div className="kpi-value">{tDDAds.ctr != null ? ((tDDAds.ctr || 0) * 100).toFixed(1) + '%' : '—'}</div>
-          <VarChip curr={tDDAds.ctr} prev={pDDAds.ctr} kind="pct" />
+          <div className="kpi-label">Promo ROAS</div>
+          <div className="kpi-value">{tDDAds.promoROAS != null ? (Number(tDDAds.promoROAS) || 0).toFixed(2) + '×' : '—'}</div>
+          <VarChip curr={tDDAds.promoROAS} prev={pDDAds.promoROAS} kind="roas" />
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">Conversion Rate (Promo)</div>
-          <div className="kpi-value">{ddCvr != null ? (ddCvr * 100).toFixed(1) + '%' : '—'}</div>
-          <VarChip curr={ddCvr} prev={pDdCvr} kind="pct" />
+          <div className="kpi-label">Sponsor ROAS</div>
+          <div className="kpi-value">{tDDAds.sponsorROAS != null ? (Number(tDDAds.sponsorROAS) || 0).toFixed(1) + '×' : '—'}</div>
+          <VarChip curr={tDDAds.sponsorROAS} prev={pDDAds.sponsorROAS} kind="roas" />
         </div>
       </div>
 

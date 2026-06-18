@@ -6,6 +6,17 @@ import { Bar } from 'react-chartjs-2';
 import Table from './Table';
 import { fmtPct, fmtVarPCColored } from '@/lib/fmt';
 
+// Format a cost variance as plain text (positive = over budget = bad).
+function fmtV(v) {
+  const n = Number(v) || 0;
+  const abs = (Math.abs(n) * 100).toFixed(1) + '%';
+  return n < 0 ? `(${abs})` : abs;
+}
+function varCls(v) {
+  const n = Number(v) || 0;
+  return n === 0 ? 'neu' : n > 0 ? 'neg' : 'pos';
+}
+
 const VIEWS = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'ptd',    label: 'Period to Date' },
@@ -76,17 +87,20 @@ export default function Costs({ data }) {
         <div className="kpi-card">
           <div className="kpi-label">Actual Labor %</div>
           <div className="kpi-value">{fmtPct(total.laborAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.laborBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varLabor) }} /></div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.laborBud)}</div>
+          <div className={`kpi-change ${varCls(varLabor)}`}>Var: {fmtV(varLabor)}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Actual COGS %</div>
           <div className="kpi-value">{fmtPct(total.cogsAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.cogsBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varCogs) }} /></div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.cogsBud)}</div>
+          <div className={`kpi-change ${varCls(varCogs)}`}>Var: {fmtV(varCogs)}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Prime Cost %</div>
           <div className="kpi-value">{fmtPct(total.pcAct)}</div>
-          <div className="kpi-change neu">Bud: {fmtPct(total.pcBud)} · Var: <span dangerouslySetInnerHTML={{ __html: fmtVarPCColored(varPC) }} /></div>
+          <div className="kpi-change neu">Bud: {fmtPct(total.pcBud)}</div>
+          <div className={`kpi-change ${varCls(varPC)}`}>Var: {fmtV(varPC)}</div>
         </div>
       </div>
 

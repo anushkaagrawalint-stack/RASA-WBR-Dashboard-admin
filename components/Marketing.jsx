@@ -115,9 +115,8 @@ function RoasVarChip({ curr, prev }) {
   const diff = curr - prev;
   const pct  = (diff / Math.abs(prev)) * 100;
   const cls  = diff >= 0 ? 'pos' : 'neg';
-  const absTxt = diff >= 0 ? `${diff.toFixed(1)}×` : `(${Math.abs(diff).toFixed(1)}×)`;
   const pctTxt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
-  return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+  return <span className={`kpi-change ${cls}`}>{pctTxt} vs LW</span>;
 }
 
 // ─── Catering Marketing ─────────────────────────────────────────────────────
@@ -174,14 +173,14 @@ function CateringMarketing({ data, prevData, sub, setSub, period, setPeriod }) {
           <div className="kpi-label">Emails</div>
           <div className="kpi-value">{fmt$(tEmail.revenue)}</div>
           <div className="kpi-change neu">
-            Sent: {fmtN(tEmail.sent)} · Delivered: {fmtN(tEmail.delivered)} · Open: {emailOpenPct}
+            Sent: {fmtN(tEmail.sent)} | Delivered: {fmtN(tEmail.delivered)} | Open: {emailOpenPct}
           </div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Flows</div>
           <div className="kpi-value">{fmt$(tFlow.revenue)}</div>
           <div className="kpi-change neu">
-            Delivered: {fmtN(tFlow.delivered)} · Open: {flowOpenPct}
+            Delivered: {fmtN(tFlow.delivered)} | Open: {flowOpenPct}
           </div>
         </div>
         {is30 && (

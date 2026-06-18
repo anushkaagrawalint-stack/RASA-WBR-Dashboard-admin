@@ -56,17 +56,19 @@ function PrevKpiChip({ curr, prevRow, prevKey, label, showBoth = false, kind = '
   const pctAbs = (Math.abs(v) * 100).toFixed(1) + '%';
   const pctTxt = v >= 0 ? `${pctAbs}` : `(${pctAbs})`;
   if (showBoth) {
-    let absTxt;
+    let absTxt, absLabel;
     if (kind === '$') {
       const n = Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       absTxt = diff >= 0 ? `$${n}` : `($${n})`;
+      absLabel = 'Var $:';
     } else {
       const n = Math.round(Math.abs(diff)).toLocaleString('en-US');
       absTxt = diff >= 0 ? `${n}` : `(${n})`;
+      absLabel = 'Var:';
     }
-    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} {label}</span>;
+    return <span className={`kpi-change ${cls}`}>{absLabel} {absTxt}<br/>Var%: {pctTxt} {label}</span>;
   }
-  return <span className={`kpi-change ${cls}`}>{pctTxt} {label}</span>;
+  return <span className={`kpi-change ${cls}`}>Var%: {pctTxt} {label}</span>;
 }
 
 function buildLocTotal(rows) {

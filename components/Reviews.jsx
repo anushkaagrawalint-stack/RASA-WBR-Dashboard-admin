@@ -44,15 +44,21 @@ function platformAvgs(locRows, source) {
 // Variance chip. `inverse` = increases are bad (error rate).
 // `isRating` = show absolute delta instead of %.
 // `showBoth` = show absolute count change AND percentage (for Reviews / 5★).
-function VarChip({ curr, prev, inverse = false, isRating = false, showBoth = false }) {
+function VarChip({ curr, prev, inverse = false, isRating = false, showBoth = false, labeled = false, isPct = false }) {
   if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) {
     return <span className="kpi-change neu">— vs LW</span>;
   }
   const diff = curr - prev;
+  if (isPct) {
+    const pp = diff * 100;
+    const cls = diff === 0 ? 'neu' : (inverse ? diff < 0 : diff > 0) ? 'pos' : 'neg';
+    const txt = pp >= 0 ? `${pp.toFixed(2)}%` : `(${Math.abs(pp).toFixed(2)}%)`;
+    return <span className={`kpi-change ${cls}`}>{labeled ? 'Var%: ' : ''}{txt} vs LW</span>;
+  }
   if (isRating) {
     const cls = diff === 0 ? 'neu' : (inverse ? diff < 0 : diff > 0) ? 'pos' : 'neg';
     const txt = diff >= 0 ? `${diff.toFixed(2)}` : `(${Math.abs(diff).toFixed(2)})`;
-    return <span className={`kpi-change ${cls}`}>{txt} vs LW</span>;
+    return <span className={`kpi-change ${cls}`}>{labeled ? 'Var: ' : ''}{txt} vs LW</span>;
   }
   if (prev === 0) {
     return <span className={`kpi-change ${diff > 0 ? 'pos' : 'neu'}`}>{diff > 0 ? 'New' : '—'} vs LW</span>;
@@ -63,10 +69,10 @@ function VarChip({ curr, prev, inverse = false, isRating = false, showBoth = fal
     const abs = Math.round(Math.abs(diff)).toLocaleString('en-US');
     const absTxt = diff >= 0 ? `${abs}` : `(${abs})`;
     const pctTxt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
-    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+    return <span className={`kpi-change ${cls}`}>{labeled ? 'Var: ' : ''}{absTxt}<br/>{labeled ? 'Var%: ' : ''}{pctTxt} vs LW</span>;
   }
   const txt = pct >= 0 ? `${pct.toFixed(1)}%` : `(${Math.abs(pct).toFixed(1)}%)`;
-  return <span className={`kpi-change ${cls}`}>{txt} vs LW</span>;
+  return <span className={`kpi-change ${cls}`}>{labeled ? 'Var%: ' : ''}{txt} vs LW</span>;
 }
 
 const STAR_LOCS = [
@@ -261,67 +267,49 @@ export default function Reviews({ data, prevData }) {
         {source === 'instore' ? (
           <>
             <div className="kpi-card">
-              <div className="kpi-label">In-Store Reviews</div>
-              <div className="kpi-value">{fmtN(total.reviews)}</div>
-              <VarChip curr={total.reviews} prev={prevTotal.reviews} showBoth />
-            </div>
-            <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
               <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
-              <VarChip curr={total.rating} prev={prevTotal.rating} isRating />
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">5 Star Reviews</div>
-              <div className="kpi-value">{fmtN(total.s5)}</div>
-              <VarChip curr={total.s5} prev={prevTotal.s5} showBoth />
+              <VarChip curr={total.rating} prev={prevTotal.rating} isRating labeled />
+              <div className="kpi-change neu">{fmtN(total.reviews)} reviews</div>
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Google Avg Rating</div>
               <div className="kpi-value">{currPlat.google != null ? currPlat.google.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.google} prev={prevPlat.google} isRating />
+              <VarChip curr={currPlat.google} prev={prevPlat.google} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Yelp Avg Rating</div>
               <div className="kpi-value">{currPlat.yelp != null ? currPlat.yelp.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.yelp} prev={prevPlat.yelp} isRating />
+              <VarChip curr={currPlat.yelp} prev={prevPlat.yelp} isRating labeled />
             </div>
           </>
         ) : (
           <>
             <div className="kpi-card">
-              <div className="kpi-label">3PD Reviews</div>
-              <div className="kpi-value">{fmtN(total.reviews)}</div>
-              <VarChip curr={total.reviews} prev={prevTotal.reviews} showBoth />
-            </div>
-            <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
               <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
-              <VarChip curr={total.rating} prev={prevTotal.rating} isRating />
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">5 Star Reviews</div>
-              <div className="kpi-value">{fmtN(total.s5)}</div>
-              <VarChip curr={total.s5} prev={prevTotal.s5} showBoth />
+              <VarChip curr={total.rating} prev={prevTotal.rating} isRating labeled />
+              <div className="kpi-change neu">{fmtN(total.reviews)} reviews</div>
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Overall Error Rate</div>
               <div className="kpi-value">{((total.errRate || 0) * 100).toFixed(1)}%</div>
-              <VarChip curr={total.errRate} prev={prevTotal.errRate} inverse />
+              <VarChip curr={total.errRate} prev={prevTotal.errRate} inverse labeled isPct />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Uber Eats Rating</div>
               <div className="kpi-value">{currPlat.ue != null ? currPlat.ue.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.ue} prev={prevPlat.ue} isRating />
+              <VarChip curr={currPlat.ue} prev={prevPlat.ue} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">DoorDash Rating</div>
               <div className="kpi-value">{currPlat.dd != null ? currPlat.dd.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.dd} prev={prevPlat.dd} isRating />
+              <VarChip curr={currPlat.dd} prev={prevPlat.dd} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Grubhub Rating</div>
               <div className="kpi-value">{currPlat.gh != null ? currPlat.gh.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.gh} prev={prevPlat.gh} isRating />
+              <VarChip curr={currPlat.gh} prev={prevPlat.gh} isRating labeled />
             </div>
           </>
         )}

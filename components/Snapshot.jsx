@@ -70,24 +70,20 @@ export default function Snapshot({ data, prevData }) {
           <div className="kpi-label">Total Sales ({vl})</div>
           <div className="kpi-value">{fmt$(total.actual)}</div>
           {totalLW != null && (
-            <div className={`kpi-change ${totalLW >= 0 ? 'pos' : 'neg'}`}>{fmtVar(totalLW)} vs last week</div>
+            <div className={`kpi-change ${totalLW >= 0 ? 'pos' : 'neg'}`}>Var%: {fmtVar(totalLW)} vs LW</div>
           )}
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Last Year (LY)</div>
           <div className="kpi-value">{fmt$(total.ly)}</div>
-          <div className="kpi-change">
-            {fmt$((total.actual || 0) - (total.ly || 0))} var &nbsp;|&nbsp;
-            <span dangerouslySetInnerHTML={{ __html: fmtVarColored(total.varLY) }} />
-          </div>
+          <div className={`kpi-change ${(total.actual||0)-(total.ly||0) >= 0 ? 'pos' : 'neg'}`}>Var $: {fmt$((total.actual || 0) - (total.ly || 0))}</div>
+          <div className={`kpi-change ${(total.varLY||0) >= 0 ? 'pos' : 'neg'}`}>Var%: {fmtVar(total.varLY)}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Budget (BUD)</div>
           <div className="kpi-value">{fmt$(total.budget)}</div>
-          <div className="kpi-change">
-            {fmt$((total.actual || 0) - (total.budget || 0))} var &nbsp;|&nbsp;
-            <span dangerouslySetInnerHTML={{ __html: fmtVarColored(total.varBud) }} />
-          </div>
+          <div className={`kpi-change ${(total.actual||0)-(total.budget||0) >= 0 ? 'pos' : 'neg'}`}>Var $: {fmt$((total.actual || 0) - (total.budget || 0))}</div>
+          <div className={`kpi-change ${(total.varBud||0) >= 0 ? 'pos' : 'neg'}`}>Var%: {fmtVar(total.varBud)}</div>
         </div>
       </div>
 

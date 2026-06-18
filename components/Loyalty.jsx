@@ -24,12 +24,12 @@ function VarChip({ curr, prev, kind = '$' }) {
   if (kind === '$') {
     const n = Math.abs(Math.round(diff)).toLocaleString('en-US');
     const absTxt = diff >= 0 ? `$${n}` : `($${n})`;
-    return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+    return <span className={`kpi-change ${cls}`}>Var $: {absTxt}<br/>Var%:{pctTxt} vs LW</span>;
   }
   // orders / counts
   const n = Math.abs(Math.round(diff)).toLocaleString('en-US');
   const absTxt = diff >= 0 ? `${n}` : `(${n})`;
-  return <span className={`kpi-change ${cls}`}>{absTxt} · {pctTxt} vs LW</span>;
+  return <span className={`kpi-change ${cls}`}>Var: {absTxt}<br/>Var%:{pctTxt} vs LW</span>;
 }
 
 const PURPLE_PAIR = ['#9f7cef', '#93c5fd'];
@@ -225,6 +225,7 @@ function Sales({ L, prevL, period, setPeriod }) {
         digitalSales: gt.digitalSales,
         instoreOrders: gt.inStoreOrders,
         digitalOrders: gt.digitalOrders,
+        totalOrders:   gt.totalOrders,
       };
     })();
 
@@ -284,6 +285,9 @@ function Sales({ L, prevL, period, setPeriod }) {
           <div className="kpi-label">Total Loyalty Sales</div>
           <div className="kpi-value">{fmt$(totals.totalSales)}</div>
           <VarChip curr={totals.totalSales} prev={prevTotals.totalSales} kind="$" />
+          {(totals.totalOrders != null || (totals.instoreOrders != null && totals.digitalOrders != null)) && (
+            <div className="kpi-change neu">{fmtN(totals.totalOrders ?? ((totals.instoreOrders || 0) + (totals.digitalOrders || 0)))} orders</div>
+          )}
         </div>
         <div className="kpi-card">
           <div className="kpi-label">In-Store Sales</div>

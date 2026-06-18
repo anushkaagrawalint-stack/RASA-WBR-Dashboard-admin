@@ -85,10 +85,10 @@ export default function Sales({ data, prevData }) {
     tableHeaders = [
       { label: 'Revenue Centre' },
       { label: 'Actual', cls: 'right' },
-      ...(isWeekly ? [{ label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
+      ...(isWeekly ? [{ label: <>Var % <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
       { label: 'LY', cls: 'right' },
-      { label: 'Var $', cls: 'right' },
-      { label: 'Var %', cls: 'right' },
+      { label: 'Var $ vs LY', cls: 'right' },
+      { label: 'Var % vs LY', cls: 'right' },
     ];
     tableRows = rcWithTotal.map(r => ({
       _cls: r._isTotal ? 'total-row' : '',
@@ -149,10 +149,10 @@ export default function Sales({ data, prevData }) {
     tableHeaders = [
       { label: 'Sub-Category' },
       { label: 'Actual', cls: 'right' },
-      ...(isWeekly ? [{ label: <>Var <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
+      ...(isWeekly ? [{ label: <>Var % <span style={{ textTransform: 'none', fontSize: '0.85em' }}>vs</span> LW</>, cls: 'right' }] : []),
       { label: 'LY', cls: 'right' },
-      { label: 'Var $', cls: 'right' },
-      { label: 'Var %', cls: 'right' },
+      { label: 'Var $ vs LY', cls: 'right' },
+      { label: 'Var % vs LY', cls: 'right' },
     ];
     const prevSub = prevSCAll ? prevSCAll[sub] : null;
     tableRows = tableData.map(r => ({
@@ -219,7 +219,19 @@ export default function Sales({ data, prevData }) {
           <Doughnut data={pieData} options={{
             responsive: true,
             cutout: '55%',
-            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Montserrat', size: 11 }, color: '#6b7280', padding: 12 } } },
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { family: 'Montserrat', size: 11 }, color: '#6b7280', padding: 12 } },
+              datalabels: {
+                display: true,
+                color: '#fff',
+                font: { family: 'Montserrat', size: 12, weight: '700' },
+                formatter: (value, ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                  const pct = (value / total) * 100;
+                  return pct >= 5 ? pct.toFixed(1) + '%' : '';
+                },
+              },
+            },
           }} />
         </div>
       </div>
