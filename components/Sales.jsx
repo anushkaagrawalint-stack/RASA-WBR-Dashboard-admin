@@ -65,7 +65,7 @@ export default function Sales({ data, prevData }) {
   let chartLabels, chartActual, chartLY;
   let tableHeaders, tableRows;
 
-  const showBudget = sub === 'all' && loc === 'all';
+  const showBudget = sub === 'all';
 
   if (sub === 'all') {
     chartTitle = `Revenue by Center — ${vl}${loc !== 'all' ? ' · ' + loc : ''} vs LY`;
