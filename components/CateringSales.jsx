@@ -308,12 +308,6 @@ export default function CateringSales({ data }) {
             <div className="table-title">Catering — Inbound Summary</div>
             <SummaryByDirTable rows={ibSum} />
           </div>
-          {customerBreakdown.some(r => /inbound/i.test(r.label)) && (
-            <div className="table-card" style={{ marginBottom: 20 }}>
-              <div className="table-title">Inbound — New vs Repeat Customers</div>
-              <CustomerBreakdownTable rows={customerBreakdown.filter(r => /inbound/i.test(r.label))} />
-            </div>
-          )}
         </>
       )}
 

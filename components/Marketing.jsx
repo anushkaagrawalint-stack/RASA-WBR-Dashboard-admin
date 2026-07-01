@@ -13,42 +13,35 @@ const PERIODS = [
   { id: '90d', label: '90 Days' },
 ];
 
-const EMAIL_HEADERS = [
-  { label: 'Campaign' },
-  { label: 'Sent',      cls: 'right' },
-  { label: 'Delivered', cls: 'right' },
-  { label: 'Bounced',   cls: 'right' },
-  { label: 'Spam',      cls: 'right' },
-  { label: 'Unsubscribe', cls: 'right' },
-  { label: 'Opened',    cls: 'right' },
-  { label: 'Clicked',   cls: 'right' },
-  { label: 'Ordered',   cls: 'right' },
-  { label: 'Revenue',   cls: 'right' },
-];
 
 function openedCell(opened, delivered) {
   const pct = delivered > 0 ? Math.round((opened / delivered) * 100) : 0;
   return `${fmtN(opened)} <span style="color:#9ca3af;font-size:11px">(${pct}%)</span>`;
 }
 
-function EmailTable({ rows }) {
+// Renders a whole email table pulled directly from the sheet.
+// table = { headers: string[], rows: (string|number|null)[][] }
+function EmailTable({ table }) {
+  if (!table || !table.headers.length || !table.rows.length) return null;
+  const hdrs  = table.headers;
+  const idxOf = name => hdrs.findIndex(h => new RegExp(name, 'i').test(h));
+  const revIdx  = idxOf('revenue');
+  const openIdx = idxOf('opened');
+  const delIdx  = idxOf('delivered');
+
   return (
     <Table
-      headers={EMAIL_HEADERS}
-      rows={rows.map(r => ({
-        _cls: /^total$/i.test(r.campaign) ? 'total-row' : '',
-        cells: [
-          r.campaign,
-          fmtN(r.sent),
-          fmtN(r.delivered),
-          fmtN(r.bounced),
-          fmtN(r.spam),
-          fmtN(r.unsub),
-          openedCell(r.opened, r.delivered),
-          fmtN(r.clicked),
-          r.ordered != null ? fmtN(r.ordered) : '-',
-          fmt$(r.revenue),
-        ],
+      headers={hdrs.map((h, i) => ({ label: h, cls: i > 0 ? 'right' : '' }))}
+      rows={table.rows.map(cells => ({
+        _cls: /^total$/i.test(String(cells[0] ?? '')) ? 'total-row' : '',
+        cells: cells.map((v, i) => {
+          if (v === null || v === '-') return '-';
+          if (i === 0) return String(v);
+          if (i === revIdx) return fmt$(Number(v));
+          if (i === openIdx && delIdx >= 0) return openedCell(Number(v) || 0, Number(cells[delIdx]) || 0);
+          if (typeof v === 'number') return fmtN(v);
+          return String(v);
+        }),
       }))}
     />
   );
@@ -303,18 +296,32 @@ function CateringMarketing({ data, prevData, sub, setSub, period, setPeriod }) {
 
 // ─── Loyalty Marketing ──────────────────────────────────────────────────────
 function LoyaltyMarketing({ data, sub, setSub }) {
-  const lm = data.loyaltyMarketing || data.marketing?.loyalty || {};
-  const sms = lm.smsWoW || [];
-  const e7  = lm.email7d || [];
-  const e30 = lm.email30d || [];
+  const [emailPeriod, setEmailPeriod] = useState('30d');
 
-  const cols = lm.smsCols || {};
+  const lm   = data.loyaltyMarketing || data.marketing?.loyalty || {};
+  const sms  = lm.smsWoW  || [];
+  const e30  = lm.email30d || null;
+  const e90  = lm.email90d || null;
+
+  const cols    = lm.smsCols || {};
   const isMoney = m => /Sales|Revenue|Costs|Value/i.test(m || '');
   const findSms = name => sms.find(r => r.metric === name) || {};
   const campaignsSent = findSms('Campaigns Sent');
   const attrSales     = findSms('Attributed Sales');
   const smsRoas       = findSms('SMS ROAS');
-  const total30       = e30.find(r => /^total$/i.test(r.campaign)) || {};
+
+  const activeEmail = emailPeriod === '30d' ? e30 : e90;
+  const activeLabel = emailPeriod === '30d' ? '30 Days' : '90 Days';
+
+  // Pull the Total row from the dynamic table for KPI cards
+  const activeTotalRow = activeEmail?.rows?.find(cells => /^total$/i.test(String(cells[0] ?? ''))) || null;
+  const activeHdrs     = activeEmail?.headers || [];
+  const revColIdx      = activeHdrs.findIndex(h => /revenue/i.test(h));
+  const sentColIdx     = activeHdrs.findIndex(h => /sent/i.test(h));
+  const activeTotal    = {
+    revenue: activeTotalRow && revColIdx >= 0  ? Number(activeTotalRow[revColIdx])  : null,
+    sent:    activeTotalRow && sentColIdx >= 0 ? Number(activeTotalRow[sentColIdx]) : null,
+  };
 
   return (
     <>
@@ -343,9 +350,9 @@ function LoyaltyMarketing({ data, sub, setSub }) {
           <div className={`kpi-change ${smsRoas.var >= 0 ? 'pos' : 'neg'}`}>{fmtPct(smsRoas.var)} WoW</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">Email Revenue (30d)</div>
-          <div className="kpi-value">{fmt$(total30.revenue)}</div>
-          <div className="kpi-change neu">{total30.sent != null ? `${fmtN(total30.sent)} sent` : ''}</div>
+          <div className="kpi-label">Email Revenue ({activeLabel})</div>
+          <div className="kpi-value">{fmt$(activeTotal.revenue)}</div>
+          <div className="kpi-change neu">{activeTotal.sent != null ? `${fmtN(activeTotal.sent)} sent` : ''}</div>
         </div>
       </div>
 
@@ -370,13 +377,20 @@ function LoyaltyMarketing({ data, sub, setSub }) {
       </div>
 
       <div className="table-card">
-        <div className="table-title">Email Campaigns — Last 7 Days (Klaviyo)</div>
-        <EmailTable rows={e7} />
-      </div>
-
-      <div className="table-card">
-        <div className="table-title">Email Campaigns — Last 30 Days (Klaviyo)</div>
-        <EmailTable rows={e30} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div className="table-title" style={{ marginBottom: 0 }}>Email Campaigns — Last {activeLabel} (Klaviyo)</div>
+          <div className="toggle-group">
+            {PERIODS.map(p => (
+              <button key={p.id} className={`toggle-btn${emailPeriod === p.id ? ' active' : ''}`} onClick={() => setEmailPeriod(p.id)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {!activeEmail || !activeEmail.rows?.length
+          ? <div style={{ color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>No {activeLabel} email data in this week's workbook.</div>
+          : <EmailTable table={activeEmail} />
+        }
       </div>
     </>
   );

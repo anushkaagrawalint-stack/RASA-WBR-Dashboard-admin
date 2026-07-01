@@ -1,8 +1,8 @@
 'use client';
- 
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchSheets, fetchWeekData } from '@/lib/api';
+import { fetchSheets, fetchWeekData, getStoredUser } from '@/lib/api';
 import Snapshot from '@/components/Snapshot';
 import Sales from '@/components/Sales';
 import Costs from '@/components/Costs';
@@ -13,8 +13,9 @@ import Loyalty from '@/components/Loyalty';
 import Marketing from '@/components/Marketing';
 import CateringSales from '@/components/CateringSales';
 import Scorecard from '@/components/Scorecard';
+import AdminPanel from '@/components/AdminPanel';
 
-const TABS = [
+const DASHBOARD_TABS = [
   { id: 'snapshot',     label: 'Overview' },
   { id: 'sales',        label: 'Revenue Channels' },
   { id: 'costs',        label: 'Costs' },
@@ -26,10 +27,12 @@ const TABS = [
   { id: 'cateringsales',label: 'Catering' },
   { id: 'scorecard',    label: 'Leadership Scorecard' },
 ];
+const ADMIN_TAB = { id: 'admin', label: 'Admin Panel' };
 
 export default function DashboardPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  const [userRole, setUserRole]       = useState('user');
   const [sheets, setSheets] = useState([]);
   const [week, setWeek] = useState('');
   const [data, setData] = useState(null);
@@ -44,9 +47,13 @@ export default function DashboardPage() {
     if (!localStorage.getItem('wbr_token')) {
       router.replace('/login');
     } else {
+      const u = getStoredUser();
+      if (u?.role) setUserRole(u.role);
       setAuthChecked(true);
     }
   }, [router]);
+
+  const TABS = userRole === 'admin' ? [...DASHBOARD_TABS, ADMIN_TAB] : DASHBOARD_TABS;
 
   useEffect(() => {
     if (!authChecked) return;
@@ -92,6 +99,37 @@ export default function DashboardPage() {
       <div className="loading-screen">
         <div className="spinner" />
       </div>
+    );
+  }
+
+  if (tab === 'admin') {
+    return (
+      <>
+        <header className="header">
+          <div className="brand">
+            <img src="/rasa-logo.png" alt="RASA" className="brand-logo brand-logo-rasa" />
+            <div className="brand-title">Weekly Business Review</div>
+          </div>
+          <div className="brand-right">
+            <img src="/kutlerri-logo.png" alt="Kutlerri" className="brand-logo brand-logo-kutlerri" />
+            <button className="logout-btn" onClick={handleLogout}>Sign out</button>
+          </div>
+        </header>
+        <nav className="tabs-bar">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`tab-btn${tab === t.id ? ' active' : ''}${t.id === 'admin' ? ' admin-tab-btn' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <main className="main">
+          <AdminPanel />
+        </main>
+      </>
     );
   }
 
@@ -173,7 +211,7 @@ export default function DashboardPage() {
         {TABS.map(t => (
           <button
             key={t.id}
-            className={`tab-btn${tab === t.id ? ' active' : ''}`}
+            className={`tab-btn${tab === t.id ? ' active' : ''}${t.id === 'admin' ? ' admin-tab-btn' : ''}`}
             onClick={() => setTab(t.id)}
           >
             {t.label}
