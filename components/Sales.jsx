@@ -68,7 +68,6 @@ export default function Sales({ data, prevData }) {
   const showBudget = sub === 'all';
 
   if (sub === 'all') {
-    chartTitle = `Revenue by Center — ${vl}${loc !== 'all' ? ' · ' + loc : ''} vs LY`;
     pieTitle   = `Actual Revenue Mix — ${vl}${loc !== 'all' ? ' · ' + loc : ''}`;
     tableTitle = `Revenue by Centre — ${loc !== 'all' ? loc : 'Consolidated'}`;
 
@@ -76,6 +75,8 @@ export default function Sales({ data, prevData }) {
     chartLabels = displayRC.map(r => r.center);
     chartActual = displayRC.map(r => r.actual);
     chartLY     = displayRC.map(r => r.ly);
+    const hasBudgetData = displayRC.some(r => r.budget != null && r.budget !== 0);
+    chartTitle = `Revenue by Center — ${vl}${loc !== 'all' ? ' · ' + loc : ''} vs LY${hasBudgetData ? ' & Budget' : ''}`;
 
     // QTD and YTD: the parser includes a Totals row — use it directly.
     // Weekly / PTD: compute total from the data rows.
@@ -246,7 +247,29 @@ export default function Sales({ data, prevData }) {
             responsive: true,
             plugins: {
               legend: { position: 'bottom' },
-              tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.parsed.y)}` } },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const val = `${ctx.dataset.label}: ${fmt$(ctx.parsed.y)}`;
+                    if (ctx.dataset.label === 'Actual 2026') {
+                      const i   = ctx.dataIndex;
+                      const ly  = chartLY?.[i];
+                      const bud = chartBudget?.[i];
+                      const lines = [val];
+                      if (ly != null && ly !== 0) {
+                        const pct = ((ctx.parsed.y - ly) / Math.abs(ly) * 100).toFixed(1);
+                        lines.push(`  vs LY: ${pct >= 0 ? '+' : ''}${pct}%`);
+                      }
+                      if (bud != null && bud !== 0) {
+                        const pct = ((ctx.parsed.y - bud) / Math.abs(bud) * 100).toFixed(1);
+                        lines.push(`  vs Budget: ${pct >= 0 ? '+' : ''}${pct}%`);
+                      }
+                      return lines;
+                    }
+                    return val;
+                  },
+                },
+              },
             },
           }} />
         </div>

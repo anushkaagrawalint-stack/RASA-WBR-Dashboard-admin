@@ -42,43 +42,57 @@ function ratingBadge(v) {
 }
 function errRateBadge(v) {
   // B15:B19 / O15:O19 — error rate: <1% green, 1-2% yellow, >=2% red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n < 0.01 ? 'green' : n < 0.02 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }
 function roasUEBadge(v) {
   // D26:D28 — UE ads ROAS: >=4.5 green, 3-4.5 yellow, <3 red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 4.5 ? 'green' : n >= 3 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{n.toFixed(1)}×</span>;
 }
 function roasDDPromoBadge(v) {
   // R25:R29 — DD promo ROAS: >=3.5 green, 2-3.5 yellow, <2 red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 3.5 ? 'green' : n >= 2 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{n.toFixed(2)}×</span>;
 }
 function roasDDSponsorBadge(v) {
   // Y25:Y29 — DD sponsor ROAS: >=4.5 green, 3-4.5 yellow, <3 red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 4.5 ? 'green' : n >= 3 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{n.toFixed(1)}×</span>;
 }
 function ueCtrBadge(v) {
   // G26:G28 — UE ads CTR: >=5% green, 3-5% yellow, <3% red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 0.05 ? 'green' : n >= 0.03 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }
 function ddCtrBadge(v) {
   // U25:U29 — DD CTR: >=4.5% green, 3-4.5% yellow, <3% red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 0.045 ? 'green' : n >= 0.03 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }
 function cvrBadge(v) {
   // I26:I28 — UE ads CVR: >=20% green, 12-20% yellow, <12% red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) return <span className="badge neutral">NA</span>;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n >= 0.20 ? 'green' : n >= 0.12 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }

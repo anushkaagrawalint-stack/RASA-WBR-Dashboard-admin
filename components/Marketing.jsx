@@ -415,7 +415,7 @@ function LoyaltyMarketing({ data, sub, setSub }) {
 
       <div className="table-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div className="table-title" style={{ marginBottom: 0 }}>Email Campaigns — Last {activeLabel} (Klaviyo)</div>
+          <div className="table-title" style={{ marginBottom: 0 }}>Email Campaigns — Last {activeLabel} ({activeEmail?.platform || 'Klaviyo'})</div>
           <div className="toggle-group">
             {PERIODS.map(p => (
               <button key={p.id} className={`toggle-btn${emailPeriod === p.id ? ' active' : ''}`} onClick={() => setEmailPeriod(p.id)}>

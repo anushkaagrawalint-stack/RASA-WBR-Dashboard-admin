@@ -21,21 +21,22 @@ const EXCLUDED_3PD = ['Trey', 'Rahul', 'Sahil', 'Didier', 'Olga'];
 
 // Weighted-average platform ratings across all location rows.
 function platformAvgs(locRows, source) {
+  const n = v => typeof v === 'number' && !isNaN(v) ? v : 0;
   if (source === 'instore') {
-    const gRows = locRows.filter(r => typeof r.google === 'number');
-    const yRows = locRows.filter(r => typeof r.yelp   === 'number');
-    const gTotal = gRows.reduce((a, r) => a + (r.gNum  || 0), 0);
-    const yTotal = yRows.reduce((a, r) => a + (r.yelpN || 0), 0);
+    const gRows = locRows.filter(r => typeof r.google === 'number' && !isNaN(r.google));
+    const yRows = locRows.filter(r => typeof r.yelp   === 'number' && !isNaN(r.yelp));
+    const gTotal = gRows.reduce((a, r) => a + n(r.gNum),  0);
+    const yTotal = yRows.reduce((a, r) => a + n(r.yelpN), 0);
     const google = gTotal > 0
-      ? gRows.reduce((a, r) => a + r.google * (r.gNum  || 0), 0) / gTotal
+      ? gRows.reduce((a, r) => a + r.google * n(r.gNum),  0) / gTotal
       : gRows.length ? gRows.reduce((a, r) => a + r.google, 0) / gRows.length : null;
     const yelp = yTotal > 0
-      ? yRows.reduce((a, r) => a + r.yelp   * (r.yelpN || 0), 0) / yTotal
-      : yRows.length ? yRows.reduce((a, r) => a + r.yelp,   0) / yRows.length : null;
+      ? yRows.reduce((a, r) => a + r.yelp   * n(r.yelpN), 0) / yTotal
+      : yRows.length ? yRows.reduce((a, r) => a + r.yelp, 0) / yRows.length : null;
     return { google, yelp };
   }
   const avg = (rows, key) => {
-    const valid = rows.filter(r => typeof r[key] === 'number');
+    const valid = rows.filter(r => typeof r[key] === 'number' && !isNaN(r[key]));
     return valid.length ? valid.reduce((a, r) => a + r[key], 0) / valid.length : null;
   };
   return { ue: avg(locRows, 'ue'), dd: avg(locRows, 'dd'), gh: avg(locRows, 'gh') };
@@ -99,7 +100,11 @@ function ratingBadge(v) {
 function errRateBadge(v) {
   // M10:M15 / AA10:AA15 — 3rd Party error rate:
   // <=1.54% green, 1.55-2.19% yellow, >=2.19% red
-  const n = Number(v) || 0;
+  if (v == null || (typeof v === 'string' && /^n\/?a$/i.test(v.trim()))) {
+    return <span className="badge neutral">NA</span>;
+  }
+  const n = typeof v === 'number' ? v : Number(v);
+  if (isNaN(n)) return <span className="badge neutral">NA</span>;
   const cls = n <= 0.0154 ? 'green' : n < 0.0219 ? 'amber' : 'red';
   return <span className={`badge ${cls}`}>{(n * 100).toFixed(1)}%</span>;
 }
@@ -108,12 +113,21 @@ function computeTotal(rows, source) {
   const list = rows.filter(r => !/total/i.test(r.loc));
   if (!list.length) return null;
   const reviews = list.reduce((a, r) => a + (r.reviews || 0), 0);
-  const s5 = list.reduce((a, r) => a + (r.s5 || 0), 0);
-  const wRating = list.reduce((a, r) => a + (r.rating || 0) * (r.reviews || 0), 0);
-  const rating = reviews ? wRating / reviews : (list.reduce((a, r) => a + (r.rating || 0), 0) / list.length);
+  const s5 = list.reduce((a, r) => a + (typeof r.s5 === 'number' && !isNaN(r.s5) ? r.s5 : 0), 0);
+  // Only include rows with a real numeric rating in the weighted average.
+  const rRows   = list.filter(r => typeof r.rating === 'number' && !isNaN(r.rating));
+  const rW      = rRows.reduce((a, r) => a + (r.reviews || 0), 0);
+  const wRating = rRows.reduce((a, r) => a + r.rating * (r.reviews || 0), 0);
+  const rating  = rW > 0 ? wRating / rW
+                : rRows.length ? rRows.reduce((a, r) => a + r.rating, 0) / rRows.length
+                : null;
   if (source === 'thirdparty') {
-    const wErr = list.reduce((a, r) => a + (r.errRate || 0) * (r.reviews || 0), 0);
-    const errRate = reviews ? wErr / reviews : (list.reduce((a, r) => a + (r.errRate || 0), 0) / list.length);
+    const eRows   = list.filter(r => typeof r.errRate === 'number' && !isNaN(r.errRate));
+    const eW      = eRows.reduce((a, r) => a + (r.reviews || 0), 0);
+    const wErr    = eRows.reduce((a, r) => a + r.errRate * (r.reviews || 0), 0);
+    const errRate = eW > 0 ? wErr / eW
+                  : eRows.length ? eRows.reduce((a, r) => a + r.errRate, 0) / eRows.length
+                  : null;
     return { loc: 'Total', reviews, rating, s5, errRate };
   }
   return { loc: 'Total', reviews, rating, s5 };
@@ -268,48 +282,48 @@ export default function Reviews({ data, prevData }) {
           <>
             <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
-              <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
+              <div className="kpi-value">{typeof total.rating === 'number' && !isNaN(total.rating) ? total.rating.toFixed(1) : '—'}</div>
               <VarChip curr={total.rating} prev={prevTotal.rating} isRating labeled />
               <div className="kpi-change neu">{fmtN(total.reviews)} reviews</div>
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Google Avg Rating</div>
-              <div className="kpi-value">{currPlat.google != null ? currPlat.google.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.google} prev={prevPlat.google} isRating labeled />
+              <div className="kpi-value">{typeof total.google === 'number' && !isNaN(total.google) ? total.google.toFixed(1) : '—'}</div>
+              <VarChip curr={total.google} prev={prevTotal.google} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Yelp Avg Rating</div>
-              <div className="kpi-value">{currPlat.yelp != null ? currPlat.yelp.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.yelp} prev={prevPlat.yelp} isRating labeled />
+              <div className="kpi-value">{typeof total.yelp === 'number' && !isNaN(total.yelp) ? total.yelp.toFixed(1) : '—'}</div>
+              <VarChip curr={total.yelp} prev={prevTotal.yelp} isRating labeled />
             </div>
           </>
         ) : (
           <>
             <div className="kpi-card">
               <div className="kpi-label">Avg Rating</div>
-              <div className="kpi-value">{(total.rating || 0).toFixed(1)}</div>
+              <div className="kpi-value">{typeof total.rating === 'number' && !isNaN(total.rating) ? total.rating.toFixed(1) : '—'}</div>
               <VarChip curr={total.rating} prev={prevTotal.rating} isRating labeled />
               <div className="kpi-change neu">{fmtN(total.reviews)} reviews</div>
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Overall Error Rate</div>
-              <div className="kpi-value">{((total.errRate || 0) * 100).toFixed(1)}%</div>
+              <div className="kpi-value">{typeof total.errRate === 'number' && !isNaN(total.errRate) ? (total.errRate * 100).toFixed(1) + '%' : '—'}</div>
               <VarChip curr={total.errRate} prev={prevTotal.errRate} inverse labeled isPct />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Uber Eats Rating</div>
-              <div className="kpi-value">{currPlat.ue != null ? currPlat.ue.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.ue} prev={prevPlat.ue} isRating labeled />
+              <div className="kpi-value">{typeof total.ue === 'number' && !isNaN(total.ue) ? total.ue.toFixed(1) : '—'}</div>
+              <VarChip curr={total.ue} prev={prevTotal.ue} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">DoorDash Rating</div>
-              <div className="kpi-value">{currPlat.dd != null ? currPlat.dd.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.dd} prev={prevPlat.dd} isRating labeled />
+              <div className="kpi-value">{typeof total.dd === 'number' && !isNaN(total.dd) ? total.dd.toFixed(1) : '—'}</div>
+              <VarChip curr={total.dd} prev={prevTotal.dd} isRating labeled />
             </div>
             <div className="kpi-card">
               <div className="kpi-label">Grubhub Rating</div>
-              <div className="kpi-value">{currPlat.gh != null ? currPlat.gh.toFixed(1) : '—'}</div>
-              <VarChip curr={currPlat.gh} prev={prevPlat.gh} isRating labeled />
+              <div className="kpi-value">{typeof total.gh === 'number' && !isNaN(total.gh) ? total.gh.toFixed(1) : '—'}</div>
+              <VarChip curr={total.gh} prev={prevTotal.gh} isRating labeled />
             </div>
           </>
         )}
