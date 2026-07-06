@@ -3,6 +3,7 @@ import { verifyAdmin } from '@/lib/auth';
 import { uploadScorecardFile } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const VALID_GRANULARITIES = new Set(['weekly', 'period', 'quarter']);
 

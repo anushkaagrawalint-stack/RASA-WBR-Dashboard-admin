@@ -3,6 +3,7 @@ import { verifyAdmin } from '@/lib/auth';
 import { uploadWeekFile } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const VALID_TYPES = new Set(['wbr', 'loyalty', 'catering']);
 
