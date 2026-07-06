@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth';
-import { uploadScorecardFile } from '@/lib/blobStorage';
+import { uploadScorecardFile } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
 
@@ -23,6 +23,9 @@ export async function POST(request) {
     }
     if (!file.name.match(/\.xlsx$/i)) {
       return NextResponse.json({ error: 'Only .xlsx files are accepted' }, { status: 400 });
+    }
+    if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+      return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

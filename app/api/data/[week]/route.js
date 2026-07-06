@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
-import { parseWeekFolder, parseWeekFolderFromBuffers } from '@/lib/xlsxParser';
+import { parseWeekFolder } from '@/lib/xlsxParser';
 import { verifyAuth } from '@/lib/auth';
-import { listBlobWeekFiles, downloadBlob } from '@/lib/blobStorage';
 
 export const runtime = 'nodejs';
 
@@ -28,33 +27,15 @@ export async function GET(request, { params }) {
     }
 
     const localFolder = path.join(DATA_DIR, week);
-
-    // ── Local path ────────────────────────────────────────────────────────────
-    if (fs.existsSync(localFolder)) {
-      const fp = localFingerprint(localFolder);
-      const cacheKey = `local:${week}:${fp}`;
-      if (cache.has(cacheKey)) return NextResponse.json(cache.get(cacheKey));
-      const data = parseWeekFolder(localFolder);
-      cache.set(cacheKey, data);
-      return NextResponse.json(data);
-    }
-
-    // ── Blob path ─────────────────────────────────────────────────────────────
-    const blobFiles = await listBlobWeekFiles(week);
-    if (!blobFiles.wbr && !blobFiles.loyalty && !blobFiles.catering) {
+    if (!fs.existsSync(localFolder)) {
       return NextResponse.json({ error: 'Week not found: ' + week }, { status: 404 });
     }
 
-    const blobFp = [blobFiles.wbr?.url, blobFiles.loyalty?.url, blobFiles.catering?.url].join('|');
-    const cacheKey = `blob:${week}:${blobFp}`;
+    const fp = localFingerprint(localFolder);
+    const cacheKey = `${week}:${fp}`;
     if (cache.has(cacheKey)) return NextResponse.json(cache.get(cacheKey));
 
-    const buffers = {};
-    if (blobFiles.wbr)      buffers.wbr      = await downloadBlob(blobFiles.wbr.url);
-    if (blobFiles.loyalty)  buffers.loyalty  = await downloadBlob(blobFiles.loyalty.url);
-    if (blobFiles.catering) buffers.catering = await downloadBlob(blobFiles.catering.url);
-
-    const data = parseWeekFolderFromBuffers(buffers, week);
+    const data = parseWeekFolder(localFolder);
     cache.set(cacheKey, data);
     return NextResponse.json(data);
   } catch (err) {

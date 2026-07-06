@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth';
-import { deleteScorecardFile } from '@/lib/blobStorage';
+import { deleteScorecardFile } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +12,9 @@ export async function DELETE(request) {
     const { granularity, filename } = await request.json();
     if (!granularity || !filename) {
       return NextResponse.json({ error: 'granularity and filename are required' }, { status: 400 });
+    }
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
     }
     await deleteScorecardFile(granularity, filename);
     return NextResponse.json({ ok: true });
