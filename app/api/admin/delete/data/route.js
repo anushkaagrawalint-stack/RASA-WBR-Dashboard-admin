@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth';
-import { deleteWbrFile, deleteWbrWeek } from '@/lib/blobStorage';
+import { deleteWeekFile, deleteWeek } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
 
@@ -11,10 +11,13 @@ export async function DELETE(request) {
   try {
     const { weekName, fileType } = await request.json();
     if (!weekName) return NextResponse.json({ error: 'weekName is required' }, { status: 400 });
+    if (weekName.includes('..') || weekName.includes('/') || weekName.includes('\\')) {
+      return NextResponse.json({ error: 'Invalid weekName' }, { status: 400 });
+    }
     if (fileType) {
-      await deleteWbrFile(weekName, fileType);
+      await deleteWeekFile(weekName, fileType);
     } else {
-      await deleteWbrWeek(weekName);
+      await deleteWeek(weekName);
     }
     return NextResponse.json({ ok: true });
   } catch (err) {

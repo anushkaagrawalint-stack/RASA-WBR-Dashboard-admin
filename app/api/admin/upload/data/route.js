@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth';
-import { uploadWbrFile } from '@/lib/blobStorage';
+import { uploadWeekFile } from '@/lib/githubStorage';
 
 export const runtime = 'nodejs';
 
@@ -22,13 +22,16 @@ export async function POST(request) {
     if (!VALID_TYPES.has(fileType)) {
       return NextResponse.json({ error: 'fileType must be wbr, loyalty, or catering' }, { status: 400 });
     }
+    if (weekName.includes('..') || weekName.includes('/') || weekName.includes('\\')) {
+      return NextResponse.json({ error: 'Invalid weekName' }, { status: 400 });
+    }
     if (!file.name.match(/\.xlsx$/i)) {
       return NextResponse.json({ error: 'Only .xlsx files are accepted' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await uploadWbrFile(weekName, fileType, buffer, file.name);
-    return NextResponse.json({ ok: true, weekName, fileType });
+    const path = await uploadWeekFile(weekName, fileType, buffer);
+    return NextResponse.json({ ok: true, weekName, fileType, path });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
