@@ -9,6 +9,9 @@ import {
   adminDeleteScorecard,
   adminDownloadData,
   adminDownloadScorecard,
+  fetchAdminUsers,
+  adminSaveUser,
+  adminDeleteUser,
 } from '@/lib/api';
 
 const FILE_TYPES = ['wbr', 'loyalty', 'catering'];
@@ -120,6 +123,72 @@ function UploadModal({ prefillWeek, prefillType, onClose, onDone }) {
   );
 }
 
+// ── User modal (add / edit) ───────────────────────────────────────────────────
+
+function UserModal({ prefillEmail, prefillRole, isEdit, onClose, onDone }) {
+  const [email,    setEmail]    = useState(prefillEmail || '');
+  const [password, setPassword] = useState('');
+  const [role,     setRole]     = useState(prefillRole  || 'user');
+  const [busy,     setBusy]     = useState(false);
+  const [msg,      setMsg]      = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setMsg('');
+    try {
+      await adminSaveUser(email.trim(), password || undefined, role);
+      setMsg(isEdit ? 'Updated! Changes live after Vercel redeploys (~40s).' : 'User added! They can log in after Vercel redeploys (~40s).');
+      setTimeout(() => { onDone(); onClose(); }, 1400);
+    } catch (err) {
+      setMsg('Error: ' + err.message);
+      setBusy(false);
+    }
+  }
+
+  const inp = { background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' };
+  const lbl = { fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 400, boxShadow: '0 8px 40px rgba(0,0,0,0.18)', fontFamily: "'Montserrat',sans-serif" }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 18 }}>{isEdit ? 'Edit User' : 'Add New User'}</div>
+        <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+          <div>
+            <label style={lbl}>Email</label>
+            <input style={{ ...inp, background: isEdit ? '#f9fafb' : '#f3f4f6' }}
+              value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="user@example.com" readOnly={isEdit} />
+          </div>
+          <div>
+            <label style={lbl}>Password {isEdit && <span style={{ fontWeight: 400, textTransform: 'none' }}>(leave blank to keep current)</span>}</label>
+            <input style={inp} type="password" value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={isEdit ? 'Leave blank to keep unchanged' : 'Min 6 characters'} />
+          </div>
+          <div>
+            <label style={lbl}>Role</label>
+            <select style={inp} value={role} onChange={e => setRole(e.target.value)}>
+              <option value="user">User — can view dashboard</option>
+              <option value="admin">Admin — full access + admin panel</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button type="submit" disabled={busy || (!isEdit && !email.trim()) || (!isEdit && !password)}
+              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {busy ? 'Saving…' : isEdit ? 'Update' : 'Add User'}
+            </button>
+            <button type="button" onClick={onClose}
+              style={{ background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            {msg && <span style={{ fontSize: 12, color: msg.startsWith('Error') ? '#dc2626' : '#15803d' }}>{msg}</span>}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminPanel() {
@@ -138,6 +207,11 @@ export default function AdminPanel() {
   // Upload modal
   const [modal, setModal] = useState(null); // { week, type }
 
+  // Users section
+  const [users,      setUsers]      = useState(null);
+  const [usersErr,   setUsersErr]   = useState('');
+  const [userModal,  setUserModal]  = useState(null); // null | { email?, role?, isEdit }
+
   const load = () => {
     setLoading(true);
     fetchAdminStatus()
@@ -145,6 +219,13 @@ export default function AdminPanel() {
       .catch(e => { setError(e.message); setLoading(false); });
   };
   useEffect(load, []);
+
+  const loadUsers = () => {
+    fetchAdminUsers()
+      .then(d => setUsers(d.users))
+      .catch(e => setUsersErr(e.message));
+  };
+  useEffect(() => { if (section === 'users') loadUsers(); }, [section]);
 
   async function delData(weekName, ft) {
     if (!confirm(`Delete ${ft} file for "${weekName}"? This commits the deletion to GitHub.`)) return;
@@ -194,18 +275,34 @@ export default function AdminPanel() {
           onDone={load}
         />
       )}
+      {userModal && (
+        <UserModal
+          prefillEmail={userModal.email}
+          prefillRole={userModal.role}
+          isEdit={userModal.isEdit}
+          onClose={() => setUserModal(null)}
+          onDone={loadUsers}
+        />
+      )}
 
       {/* Section tabs */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {['data', 'scorecard'].map(s => (
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        {[['data', 'WBR Data'], ['scorecard', 'Scorecard'], ['users', 'Users']].map(([s, label]) => (
           <button key={s} onClick={() => setSection(s)} style={btn(section === s ? '#7c3aed' : '#e5e7eb')}>
-            {s === 'data' ? 'WBR Data' : 'Scorecard'}
+            {label}
           </button>
         ))}
-        <button onClick={() => setModal({ week: '', type: 'wbr' })} style={{ ...btn('#059669'), marginLeft: 'auto' }}>
-          + Upload New Week
-        </button>
-        <button onClick={load} style={btn('#6b7280')}>Refresh</button>
+        {section === 'data' && (
+          <button onClick={() => setModal({ week: '', type: 'wbr' })} style={{ ...btn('#059669'), marginLeft: 'auto' }}>
+            + Upload New Week
+          </button>
+        )}
+        {section === 'users' && (
+          <button onClick={() => setUserModal({ isEdit: false })} style={{ ...btn('#059669'), marginLeft: 'auto' }}>
+            + Add User
+          </button>
+        )}
+        <button onClick={section === 'users' ? loadUsers : load} style={btn('#6b7280')}>Refresh</button>
       </div>
 
       {loading && <div style={{ color: 'var(--muted)', padding: 20 }}>Loading…</div>}
@@ -318,6 +415,74 @@ export default function AdminPanel() {
               </div>
             );
           })}
+        </>
+      )}
+
+      {/* ── USERS SECTION ─────────────────────────────────────────────────── */}
+      {section === 'users' && (
+        <>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 14, alignItems: 'center', fontSize: 12, color: 'var(--muted)' }}>
+            Changes commit to GitHub and take effect after Vercel redeploys (~40s).
+          </div>
+
+          {usersErr && <div style={{ color: '#dc2626', padding: 10, marginBottom: 10 }}>{usersErr}</div>}
+
+          {!users ? (
+            <div style={{ color: 'var(--muted)', padding: 20 }}>Loading users…</div>
+          ) : (
+            <div style={card}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>
+                All Users ({users.length})
+              </div>
+              {!users.length ? (
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>No users found.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                      {['Email', 'Role', 'Actions'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '6px 10px', fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.email} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 10px', fontWeight: 500 }}>{u.email}</td>
+                        <td style={{ padding: '10px 10px' }}>
+                          <span style={{
+                            background: u.role === 'admin' ? '#ede9fe' : '#f3f4f6',
+                            color: u.role === 'admin' ? '#7c3aed' : '#6b7280',
+                            fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px',
+                          }}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 10px' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              onClick={() => setUserModal({ email: u.email, role: u.role, isEdit: true })}
+                              style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                              Edit
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
+                                try { await adminDeleteUser(u.email); loadUsers(); }
+                                catch (err) { alert('Error: ' + err.message); }
+                              }}
+                              style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
