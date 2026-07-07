@@ -1,0 +1,19 @@
+{
+  "kiran.rana@kutlerri.ai": "$2b$10$X1drMc2juj4jLt3QsKVJJ./qVzgL65jcmetjrkXAigIReas6lv3rW",
+  "payal.tripathy@kutlerri.ai": "$2b$10$F1EfjpazJE5KM7dVrPhvMeE6SNGnHPEq.0DJ.l.878yfVAwGnXAP.",
+  "dlafontant@rasa.co": "$2b$10$OZj5aKRdIamad8DR5ZEQ/eQtVpsDjl9qjQ.b7pZVbAxz6wItD7b.y",
+  "rahul@rasa.co": "$2b$10$qdFIPkWUqqaIMoDxJHxy1.scAlJ9Un8YhSHNHa5i071kjqe32KTOu",
+  "trey@rasa.co": "$2b$10$bqCiXCy7C2xIZpJxvsuZkOPJAkESMStulG28bej/lRhsShb.ywCJO",
+  "analytics@rasa.co": {
+    "hash": "$2b$10$SqEoDt3D9FMdiYGGV6lhlOm.QkJrHZHriW.tdHUkfwFpEC5/Fhk2.",
+    "role": "user"
+  },
+  "analytics@kutlerri.ai": {
+    "hash": "$2b$10$Tvc8i.qjlA7AY3i9pe44UuUb/yFq8NsBWj86zEfcV3vSSjWeBr13S",
+    "role": "admin"
+  },
+  "admin@kutlerri.ai": {
+    "hash": "$2b$10$1IEGZGybFO3XAmXkAGE1iOqFs.DK9Vm6Vnbn3IMMY9dL6QFgYi5xm",
+    "role": "admin"
+  }
+}
